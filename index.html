@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestore Piano Editoriale</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Libreria SheetJS (xlsx) per Import/Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        /* Stile per un font sans-serif pulito */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* Configurazione colori personalizzati Tailwind */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-primary': '#334155', // Slate 800
+                        'brand-secondary': '#64748b', // Slate 500
+                        'brand-highlight': '#38bdf8', // Sky 400
+                        'brand-bg': '#f8fafc' // Slate 50
+                    }
+                }
+            }
+        }
+
+        /* Nasconde di default le viste */
+        #edit-view,
+        #view-view {
+            display: none;
+        }
+
+        /* Mostra la vista attiva */
+        .view-active {
+            display: block !important;
+        }
+        
+        /* Stile per i campi di testo in modalità modifica */
+        #edit-table textarea,
+        #edit-table input[type="time"],
+        #edit-table input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db; /* gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #edit-table textarea:focus,
+        #edit-table input[type="time"]:focus,
+        #edit-table input[type="text"]:focus {
+            outline: none;
+            border-color: #334155; /* brand-primary */
+            box-shadow: 0 0 0 2px rgba(51, 65, 85, 0.3); /* Ring color */
+        }
+
+        /* Stile per i bottoni con feedback */
+        .btn-feedback {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-feedback .feedback-text {
+            display: inline-block;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .btn-feedback.loading .feedback-text {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        .btn-feedback .feedback-message {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, 100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-feedback.loading .feedback-message,
+        .btn-feedback.success .feedback-message {
+            transform: translate(-50%, -50%);
+            opacity: 1;
+        }
+
+        /* Stile per la notifica Toast */
+        #toast-notification {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 0.375rem; /* rounded-md */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-weight: 500;
+            transition: bottom 0.5s ease-in-out;
+            z-index: 50;
+        }
+
+        #toast-notification.show {
+            bottom: 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-gray-900">
+
+    <!-- Contenitore Principale -->
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="mb-6 pb-4 border-b-4 border-brand-highlight">
+            <h1 class="text-3xl sm:text-4xl font-bold text-brand-primary">Gestore Piano Editoriale</h1>
+            <p class="text-lg text-gray-600">Modifica e visualizza i tuoi post social.</p>
+        </header>
+
+        <!-- Sezione Controlli Principali -->
+        <section class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <h2 class="text-xl font-semibold text-brand-primary mb-4">Controlli</h2>
+            
+            <!-- Controlli Dati -->
+            <div class="flex flex-wrap gap-3 mb-4">
+                <button id="save-local-btn" class="btn-feedback bg-brand-primary text-white font-semibold py-2 px-4 rounded-md transition-colors hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-opacity-50">
+                    <span class="feedback-text">Salva nel Browser</span>
+                    <span class="feedback-message">Salvataggio...</span>
+                </button>
+                <button id="reset-app-btn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-opacity-50">
+                    <span>Reset App</span>
+                </button>
+            </div>
+
+            <!-- Controlli Import/Export -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button id="import-json-btn" class="bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">Importa JSON</button>
+                <input type="file" id="import-json-input" accept=".json" class="hidden">
+                
+                <button id="export-json-btn" class="btn-feedback bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">
+                    <span class="feedback-text">Esporta JSON</span>
+                    <span class="feedback-message">Esporto...</span>
+                </button>
+
+                <button id="import-excel-btn" class="bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">Importa Excel</button>
+                <input type="file" id="import-excel-input" accept=".xlsx, .xls, .csv" class="hidden">
+
+                <button id="export-excel-btn" class="btn-feedback bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">
+                    <span class="feedback-text">Esporta Excel</span>
+                    <span class="feedback-message">Esporto...</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Sezione Vista -->
+        <section class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <h2 class="text-xl font-semibold text-brand-primary mb-4 sm:mb-0">Visualizzazione</h2>
+                <!-- Switch Viste -->
+                <div class="flex rounded-md shadow-sm" role="group">
+                    <button id="btn-view-edit" type="button" class="py-2 px-4 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-brand-primary">
+                        Modifica
+                    </button>
+                    <button id="btn-view-cards" type="button" class="py-2 px-4 text-sm font-medium text-gray-900 bg-white border-t border-b border-r border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-brand-primary">
+                        Visualizza
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contenuto Principale (Viste) -->
+        <main>
+            <!-- Vista Modifica (Tabella) -->
+            <div id="edit-view">
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                    <div class="overflow-x-auto">
+                        <table id="edit-table" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Orario</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Testo</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Menzioni</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset</th>
+                                    <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">FB</th>
+                                    <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">LI</th>
+                                    <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">X</th>
+                                    <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">IG</th>
+                                    <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Ricond.</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Azione</th>
+                                </tr>
+                            </thead>
+                            <tbody id="edit-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Le righe verranno iniettate da JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-6">
+                        <button id="add-post-btn" class="bg-brand-highlight text-brand-primary font-semibold py-2 px-4 rounded-md transition-colors hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-brand-highlight focus:ring-opacity-50">
+                            Aggiungi Post
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Visualizzazione (Card) -->
+            <div id="view-view">
+                <div id="view-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Le card verranno iniettate da JS -->
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Modale Conferma Reset -->
+    <div id="reset-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-40 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+            <h3 class="text-xl font-semibold text-brand-primary mb-4">Conferma Reset</h3>
+            <p class="text-gray-600 mb-6">Sei sicuro di voler resettare l'applicazione? Tutti i dati verranno rimossi dal browser.</p>
+            <div class="flex justify-end gap-3">
+                <button id="modal-cancel-btn" class="bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">Annulla</button>
+                <button id="modal-confirm-reset-btn" class="btn-feedback bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition-colors hover:bg-red-700">
+                    <span class="feedback-text">Conferma Reset</span>
+                    <span class="feedback-message">Resetto...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifica Toast -->
+    <div id="toast-notification" class=""></div>
+
+    <!-- SCRIPT PRINCIPALE APP -->
+    <script type="module">
+        // --- STATO DELL'APPLICAZIONE ---
+        let editorialPlan = [];
+        let currentView = 'edit'; // 'edit' o 'cards'
+
+        // Dati di default: array vuoto
+        const defaultPlan = [];
+
+        // --- ICONE SOCIAL (SVG) ---
+        const svgIcons = {
+            facebook: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>',
+            linkedin: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>',
+            x: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>',
+            instagram: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C8.74 2 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.784.306-1.457.718-2.123 1.385S.935 3.356.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.784.718 1.457 1.385 2.123s1.339.815 2.123 1.12c.765.297 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.261 2.913-.558.784-.306 1.457-.718 2.123-1.385s.815-1.339 1.12-2.123c.297-.765.499-1.636.558-2.913C23.988 15.667 24 15.26 24 12s-.015-3.667-.072-4.947c-.06-1.277-.261-2.148-.558-2.913-.306-.784-.718-1.457-1.385-2.123S20.644.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.07 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.056 1.265.07 1.646.07 4.85s-.015 3.585-.07 4.85c-.053 1.17-.248 1.805-.413 2.227-.217.562-.477.96-.896 1.382-.42.419-.819.679-1.381.896-.422.164-1.057.36-2.227.413-1.265.056-1.646.07-4.85.07s-3.585-.015-4.85-.07c-1.17-.053-1.805-.248-2.227-.413-.562-.217-.96-.477-1.382-.896-.419-.42-.679-.819-.896-1.381-.164-.422-.36-1.057-.413-2.227-.056-1.265-.07-1.646-.07-4.85s.015-3.585.07-4.85c.053-1.17.248-1.805.413-2.227.217-.562.477.96.896 1.382.42-.419.819.679-1.381-.896.422-.164 1.057.36 2.227-.413C8.415 2.176 8.797 2.16 12 2.16zm0 2.713c-2.48 0-4.473 1.994-4.473 4.473s1.994 4.473 4.473 4.473 4.473-1.994 4.473-4.473S14.48 4.873 12 4.873zm0 7.23a2.757 2.757 0 110-5.514 2.757 2.757 0 010 5.514zm6.318-7.778a1.031 1.031 0 11-2.062 0 1.031 1.031 0 012.062 0z" clip-rule="evenodd" /></svg>'
+        };
+
+        // --- RIFERIMENTI DOM ---
+        const DOMElements = {
+            editView: document.getElementById('edit-view'),
+            viewView: document.getElementById('view-view'),
+            btnViewEdit: document.getElementById('btn-view-edit'),
+            btnViewCards: document.getElementById('btn-view-cards'),
+            editTableBody: document.getElementById('edit-table-body'),
+            viewGrid: document.getElementById('view-grid'),
+            addPostBtn: document.getElementById('add-post-btn'),
+            saveLocalBtn: document.getElementById('save-local-btn'),
+            importJsonBtn: document.getElementById('import-json-btn'),
+            importJsonInput: document.getElementById('import-json-input'),
+            exportJsonBtn: document.getElementById('export-json-btn'),
+            importExcelBtn: document.getElementById('import-excel-btn'),
+            importExcelInput: document.getElementById('import-excel-input'),
+            exportExcelBtn: document.getElementById('export-excel-btn'),
+            toast: document.getElementById('toast-notification'),
+            resetAppBtn: document.getElementById('reset-app-btn'),
+            resetModal: document.getElementById('reset-modal'),
+            modalCancelBtn: document.getElementById('modal-cancel-btn'),
+            modalConfirmResetBtn: document.getElementById('modal-confirm-reset-btn'),
+        };
+
+        // --- FUNZIONI DI RENDER ---
+
+        /**
+         * Renderizza la vista di modifica (tabella)
+         */
+        function renderEditView() {
+            DOMElements.editTableBody.innerHTML = ''; // Pulisce la tabella
+            
+            if (editorialPlan.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="10" class="px-6 py-10 text-center text-gray-500">Nessun post presente. Aggiungine uno nuovo o importa un file.</td>`;
+                DOMElements.editTableBody.appendChild(tr);
+                return;
+            }
+
+            editorialPlan.forEach((post, index) => {
+                const tr = document.createElement('tr');
+                tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-3 align-top" style="width: 100px;">
+                        <input type="time" class="text-sm" value="${(post.Orario || '09:00').substring(0, 5)}" data-index="${index}" data-field="Orario">
+                    </td>
+                    <td class="px-4 py-3 align-top" style="min-width: 250px;">
+                        <textarea class="text-sm min-h-[100px] resize-y" data-index="${index}" data-field="Testo">${post.Testo || ''}</textarea>
+                    </td>
+                    <td class="px-4 py-3 align-top" style="min-width: 150px;">
+                        <textarea class="text-sm min-h-[100px] resize-y" data-index="${index}" data-field="Menzioni">${post.Menzioni || ''}</textarea>
+                    </td>
+                    <td class="px-4 py-3 align-top" style="min-width: 150px;">
+                        <textarea class="text-sm min-h-[100px] resize-y" data-index="${index}" data-field="Asset">${post.Asset || ''}</textarea>
+                    </td>
+                    <td class="px-4 py-3 align-top text-center">
+                        <input type="checkbox" class="h-5 w-5 text-brand-primary rounded border-gray-300 focus:ring-brand-primary" ${post.Facebook ? 'checked' : ''} data-index="${index}" data-field="Facebook">
+                    </td>
+                    <td class="px-4 py-3 align-top text-center">
+                        <input type="checkbox" class="h-5 w-5 text-brand-primary rounded border-gray-300 focus:ring-brand-primary" ${post.Linkedin ? 'checked' : ''} data-index="${index}" data-field="Linkedin">
+                    </td>
+                    <td class="px-4 py-3 align-top text-center">
+                        <input type="checkbox" class="h-5 w-5 text-brand-primary rounded border-gray-300 focus:ring-brand-primary" ${post.X ? 'checked' : ''} data-index="${index}" data-field="X">
+                    </td>
+                    <td class="px-4 py-3 align-top text-center">
+                        <input type="checkbox" class="h-5 w-5 text-brand-primary rounded border-gray-300 focus:ring-brand-primary" ${post.Instagram ? 'checked' : ''} data-index="${index}" data-field="Instagram">
+                    </td>
+                    <td class="px-4 py-3 align-top text-center">
+                        <input type="checkbox" class="h-5 w-5 text-brand-primary rounded border-gray-300 focus:ring-brand-primary" ${post.Ricondivisione ? 'checked' : ''} data-index="${index}" data-field="Ricondivisione">
+                    </td>
+                    <td class="px-4 py-3 align-top">
+                        <button class="remove-post-btn text-red-600 hover:text-red-800 transition-colors" data-index="${index}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                `;
+                DOMElements.editTableBody.appendChild(tr);
+            });
+
+            // Aggiunge event listener per l'aggiornamento dati
+            DOMElements.editTableBody.querySelectorAll('input, textarea').forEach(input => {
+                input.addEventListener('change', updatePlanData);
+            });
+
+            // Aggiunge event listener per i bottoni di rimozione
+            DOMElements.editTableBody.querySelectorAll('.remove-post-btn').forEach(btn => {
+                btn.addEventListener('click', removePost);
+            });
+        }
+
+        /**
+         * Renderizza la vista a schede
+         */
+        function renderViewView() {
+            DOMElements.viewGrid.innerHTML = ''; // Pulisce la griglia
+
+            if (editorialPlan.length === 0) {
+                DOMElements.viewGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Nessun post da visualizzare.</p>`;
+                return;
+            }
+
+            editorialPlan.forEach(post => {
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-gray-200 rounded-lg shadow-sm p-5 flex flex-col';
+
+                // Sezione Social
+                const socialHtml = `
+                    <div class="flex space-x-3 mb-3">
+                        ${post.Facebook ? svgIcons.facebook : ''}
+                        ${post.Linkedin ? svgIcons.linkedin : ''}
+                        ${post.X ? svgIcons.x : ''}
+                        ${post.Instagram ? svgIcons.instagram : ''}
+                    </div>
+                `;
+
+                // Sezione Orario e Asset
+                const infoHtml = `
+                    <div class="mb-4">
+                        <p class="font-mono text-sm text-brand-primary font-semibold">${(post.Orario || 'N/D').substring(0, 5)}</p>
+                        <p class="text-sm text-gray-500 italic truncate" title="${post.Asset || ''}">${post.Asset || 'Nessun asset'}</p>
+                        ${post.Ricondivisione ? '<span class="mt-2 inline-block bg-sky-100 text-sky-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Ricondivisione</span>' : ''}
+                    </div>
+                `;
+
+                // Sezione Testo (Copy)
+                const copyHtml = `
+                    <div class="mb-4 flex-grow">
+                        <h3 class="text-sm font-semibold text-gray-800 mb-2">Testo</h3>
+                        <p class="text-sm text-gray-700 whitespace-pre-wrap">${post.Testo || 'Nessun testo'}</p>
+                    </div>
+                    <button class="copy-btn btn-feedback bg-brand-primary text-white text-sm font-medium py-2 px-3 rounded-md w-full mb-4 transition-colors hover:bg-slate-700">
+                        <span class="feedback-text">Copia Testo</span>
+                        <span class="feedback-message">Copiato!</span>
+                    </button>
+                `;
+
+                // Sezione Menzioni
+                const mentions = (post.Menzioni || '').split(/[\n,]/)
+                                                    .map(m => m.trim())
+                                                    .filter(m => m.length > 0);
+                
+                let mentionsHtml = '<div class="mb-2"><h3 class="text-sm font-semibold text-gray-800 mb-2">Menzioni</h3>';
+                if (mentions.length > 0) {
+                    mentionsHtml += '<div class="flex flex-wrap gap-2">';
+                    mentions.forEach(mention => {
+                        mentionsHtml += `
+                            <button class="copy-mention-btn btn-feedback bg-gray-200 text-gray-800 text-xs font-medium py-1 px-3 rounded-full hover:bg-gray-300 transition-colors" data-mention="${mention}">
+                                <span class="feedback-text">${mention}</span>
+                                <span class="feedback-message">Copiato!</span>
+                            </button>
+                        `;
+                    });
+                    mentionsHtml += '</div>';
+                } else {
+                    mentionsHtml += '<p class="text-sm text-gray-500">Nessuna menzione</p>';
+                }
+                mentionsHtml += '</div>';
+
+                card.innerHTML = socialHtml + infoHtml + copyHtml + mentionsHtml;
+                DOMElements.viewGrid.appendChild(card);
+
+                // Aggiunge listener al bottone "Copia Testo"
+                card.querySelector('.copy-btn').addEventListener('click', (e) => {
+                    copyToClipboard(post.Testo, e.currentTarget);
+                });
+
+                // Aggiunge listener ai bottoni "Copia Menzione"
+                card.querySelectorAll('.copy-mention-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        copyToClipboard(e.currentTarget.dataset.mention, e.currentTarget);
+                    });
+                });
+            });
+        }
+
+        // --- FUNZIONI DI GESTIONE DATI ---
+
+        /**
+         * Aggiorna l'array `editorialPlan` quando un campo viene modificato
+         */
+        function updatePlanData(event) {
+            const index = event.target.dataset.index;
+            const field = event.target.dataset.field;
+            const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+            
+            if (editorialPlan[index]) {
+                editorialPlan[index][field] = value;
+            }
+        }
+
+        /**
+         * Aggiunge un nuovo post vuoto
+         */
+        function addNewPost() {
+            const newPost = {
+                Orario: "12:00",
+                Testo: "",
+                Menzioni: "",
+                Asset: "",
+                Facebook: false,
+                Linkedin: false,
+                X: false,
+                Instagram: false,
+                Ricondivisione: false
+            };
+            editorialPlan.push(newPost);
+            renderEditView(); // Ridisegna la tabella
+            
+            // Scrolla fino al nuovo elemento
+            DOMElements.editTableBody.lastChild.scrollIntoView({ behavior: "smooth" });
+        }
+
+        /**
+         * Rimuove un post
+         */
+        function removePost(event) {
+            const index = event.currentTarget.dataset.index;
+            editorialPlan.splice(index, 1); // Rimuove l'elemento dall'array
+            renderEditView(); // Ridisegna la tabella
+            showToast('Post rimosso', 'success');
+        }
+
+        /**
+         * Salva i dati nel Local Storage
+         */
+        function saveData() {
+            try {
+                localStorage.setItem('socialPlan', JSON.stringify(editorialPlan));
+                return true;
+            } catch (error) {
+                console.error("Errore nel salvataggio in localStorage:", error);
+                showToast('Errore durante il salvataggio', 'error');
+                return false;
+            }
+        }
+
+        /**
+         * Carica i dati dal Local Storage o usa i dati di default
+         */
+        function loadData() {
+            const savedData = localStorage.getItem('socialPlan');
+            if (savedData) {
+                try {
+                    editorialPlan = JSON.parse(savedData);
+                } catch (error) {
+                    console.error("Errore nel parsing dei dati salvati:", error);
+                    editorialPlan = [...defaultPlan]; // Usa default in caso di errore
+                }
+            } else {
+                editorialPlan = [...defaultPlan]; // Copia i dati di default
+            }
+        }
+
+        // --- FUNZIONI DI IMPORT/EXPORT ---
+
+        /**
+         * Gestisce l'import di un file JSON
+         */
+        function handleImportJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        editorialPlan = importedData;
+                        renderEditView();
+                        showToast('Dati JSON importati con successo!', 'success');
+                    } else {
+                        throw new Error('Il file JSON non è un array valido.');
+                    }
+                } catch (error) {
+                    console.error("Errore importazione JSON:", error);
+                    showToast('Errore: file JSON non valido.', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = null; // Resetta l'input per futuri caricamenti
+        }
+
+        /**
+         * Esporta i dati in un file JSON
+         */
+        function exportJSON(button) {
+            try {
+                const dataStr = JSON.stringify(editorialPlan, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'piano_editoriale.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                return true;
+            } catch (error) {
+                console.error("Errore esportazione JSON:", error);
+                showToast('Errore durante l\'esportazione JSON', 'error');
+                return false;
+            }
+        }
+
+        /**
+         * Gestisce l'import di un file Excel
+         */
+        function handleImportExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { raw: false }); // raw: false per formattare date/ore
+
+                    // Mappatura dei dati importati per normalizzarli
+                    // (I booleani da '✔' e le ore)
+                    const normalizedPlan = json.map(row => ({
+                        Orario: (row.Orario || "00:00").substring(0, 5),
+                        Testo: row.Testo || "",
+                        Menzioni: row.Menzioni || "",
+                        Asset: row.Asset || "",
+                        Facebook: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Facebook).toLowerCase()),
+                        Linkedin: ['true', '✔', '1' ,'sì', 'si', 'yes', 'y'].includes(String(row.Linkedin).toLowerCase()),
+                        X: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.X).toLowerCase()),
+                        Instagram: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Instagram).toLowerCase()),
+                        Ricondivisione: ['true', '✔', '1', 'sì', 'si', 'yes', 'y', 'ricondivisione'].includes(String(row.Ricondivisione).toLowerCase() || String(row["Ricondivisione post"]).toLowerCase()),
+                    }));
+                    
+                    editorialPlan = normalizedPlan;
+                    renderEditView();
+                    showToast('Dati Excel importati con successo!', 'success');
+
+                } catch (error) {
+                    console.error("Errore importazione Excel:", error);
+                    showToast('Errore nell\'importazione del file Excel.', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = null; // Resetta l'input
+        }
+
+        /**
+         * Esporta i dati in un file Excel
+         */
+        function exportExcel(button) {
+            try {
+                // Prepara i dati per l'esportazione (es. converte booleani in '✔')
+                const dataToExport = editorialPlan.map(post => ({
+                    ...post,
+                    Facebook: post.Facebook ? '✔' : '',
+                    Linkedin: post.Linkedin ? '✔' : '',
+                    X: post.X ? '✔' : '',
+                    Instagram: post.Instagram ? '✔' : '',
+                    Ricondivisione: post.Ricondivisione ? '✔' : '',
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                
+                // Imposta larghezza colonne (opzionale ma carino)
+                ws['!cols'] = [
+                    { wch: 10 }, // Orario
+                    { wch: 60 }, // Testo
+                    { wch: 30 }, // Menzioni
+                    { wch: 30 }, // Asset
+                    { wch: 5 },  // FB
+                    { wch: 5 },  // LI
+                    { wch: 5 },  // X
+                    { wch: 5 },  // IG
+                    { wch: 8 }   // Ricondivisione
+                ];
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Piano Editoriale');
+                XLSX.writeFile(wb, 'piano_editoriale.xlsx');
+                return true;
+            } catch (error) {
+                console.error("Errore esportazione Excel:", error);
+                showToast('Errore durante l'esportazione Excel', 'error');
+                return false;
+            }
+        }
+
+
+        // --- FUNZIONI UTILITY ---
+
+        /**
+         * Gestisce il cambio di vista
+         */
+        function setView(view) {
+            currentView = view;
+            if (view === 'edit') {
+                DOMElements.editView.classList.add('view-active');
+                DOMElements.viewView.classList.remove('view-active');
+                DOMElements.btnViewEdit.classList.add('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                DOMElements.btnViewCards.classList.remove('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                renderEditView(); // Ridisegna per sicurezza
+            } else {
+                DOMElements.editView.classList.remove('view-active');
+                DOMElements.viewView.classList.add('view-active');
+                DOMElements.btnViewEdit.classList.remove('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                DOMElements.btnViewCards.classList.add('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                renderViewView(); // Ridisegna le card
+            }
+        }
+
+        /**
+         * Mostra una notifica toast
+         */
+        let toastTimer;
+        function showToast(message, type = 'info') {
+            clearTimeout(toastTimer);
+            const toast = DOMElements.toast;
+            toast.textContent = message;
+            
+            // Rimuove classi vecchie
+            toast.classList.remove('bg-green-500', 'bg-red-500', 'bg-blue-500', 'text-white');
+
+            if (type === 'success') {
+                toast.classList.add('bg-green-500', 'text-white');
+            } else if (type === 'error') {
+                toast.classList.add('bg-red-500', 'text-white');
+            } else {
+                toast.classList.add('bg-blue-500', 'text-white');
+            }
+
+            toast.classList.add('show');
+
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        /**
+         * Copia testo negli appunti e gestisce feedback bottone
+         */
+        function copyToClipboard(text, buttonElement) {
+            // Usa l'API moderna se disponibile
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showButtonFeedback(buttonElement, 'Copiato!', 'success');
+                }).catch(err => {
+                    console.warn("Fallback su execCommand", err);
+                    copyFallback(text, buttonElement); // Fallback
+                });
+            } else {
+                copyFallback(text, buttonElement); // Fallback per http o contesti non sicuri
+            }
+        }
+        
+        // Fallback per 'copy' (necessario per http e iframe)
+        function copyFallback(text, buttonElement) {
+             const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "absolute";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showButtonFeedback(buttonElement, 'Copiato!', 'success');
+            } catch (err) {
+                console.error('Impossibile copiare', err);
+                showButtonFeedback(buttonElement, 'Errore', 'error');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        /**
+         * Mostra un feedback visivo su un bottone (es. "Copiato!")
+         */
+        function showButtonFeedback(button, message, state = 'success') {
+            const originalText = button.querySelector('.feedback-text').innerHTML;
+            const messageEl = button.querySelector('.feedback-message');
+            
+            messageEl.textContent = message;
+            button.classList.add(state); // 'success' o 'loading'
+            button.disabled = true;
+
+            setTimeout(() => {
+                button.classList.remove(state);
+                button.disabled = false;
+                // messageEl.textContent = ''; // Resetta il testo del messaggio se necessario
+            }, 2000);
+        }
+
+        /**
+         * Gestisce il feedback per azioni lunghe (Salva, Esporta)
+         */
+        async function handleAsyncButtonAction(button, actionFn) {
+            const originalTextEl = button.querySelector('.feedback-text');
+            const messageEl = button.querySelector('.feedback-message');
+            const originalText = originalTextEl.innerHTML;
+
+            // Start loading
+            messageEl.textContent = button.dataset.loadingText || 'Carico...';
+            button.classList.add('loading');
+            button.disabled = true;
+
+            try {
+                // Simula un'attesa minima per mostrare il feedback
+                await new Promise(r => setTimeout(r, 300)); 
+                const success = await actionFn(button); // Esegue l'azione
+
+                if (success) {
+                    messageEl.textContent = button.dataset.successText || 'Fatto!';
+                    button.classList.remove('loading');
+                    button.classList.add('success');
+                } else {
+                    throw new Error('Azione fallita');
+                }
+
+            } catch (error) {
+                messageEl.textContent = 'Errore!';
+                button.classList.remove('loading');
+                button.classList.add('error');
+            }
+
+            // Reset button
+            setTimeout(() => {
+                button.classList.remove('success', 'error');
+                button.disabled = false;
+                messageEl.textContent = ''; // Pulisce il messaggio
+            }, 2000);
+        }
+
+        /**
+         * Funzioni Modale Reset
+         */
+        function showResetModal() {
+            DOMElements.resetModal.classList.remove('hidden');
+        }
+
+        function hideResetModal() {
+            DOMElements.resetModal.classList.add('hidden');
+        }
+
+        function handleResetApp() {
+            hideResetModal();
+            editorialPlan = [];
+            localStorage.removeItem('socialPlan');
+            renderEditView(); // Ricarica la vista modifica che sarà vuota
+            renderViewView(); // Pulisce anche la vista card
+            showToast('Applicazione resettata', 'success');
+            return true; // Per la funzione handleAsyncButtonAction
+        }
+
+
+        // --- INIZIALIZZAZIONE ---
+        
+        function initApp() {
+            // Carica dati
+            loadData();
+            
+            // Imposta vista iniziale
+            setView(currentView);
+
+            // Listener per cambio vista
+            DOMElements.btnViewEdit.addEventListener('click', () => setView('edit'));
+            DOMElements.btnViewCards.addEventListener('click', () => setView('cards'));
+            
+            // Listener bottoni principali
+            DOMElements.addPostBtn.addEventListener('click', addNewPost);
+
+            // Listener bottoni con feedback asincrono
+            DOMElements.saveLocalBtn.dataset.loadingText = "Salvataggio...";
+            DOMElements.saveLocalBtn.dataset.successText = "Salvato!";
+            DOMElements.saveLocalBtn.addEventListener('click', (e) => handleAsyncButtonAction(e.currentTarget, saveData));
+
+            DOMElements.exportJsonBtn.dataset.loadingText = "Esporto...";
+            DOMElements.exportJsonBtn.dataset.successText = "Esportato!";
+            DOMElements.exportJsonBtn.addEventListener('click', (e) => handleAsyncButtonAction(e.currentTarget, exportJSON));
+            
+            DOMElements.exportExcelBtn.dataset.loadingText = "Esporto...";
+            DOMElements.exportExcelBtn.dataset.successText = "Esportato!";
+            DOMElements.exportExcelBtn.addEventListener('click', (e) => handleAsyncButtonAction(e.currentTarget, exportExcel));
+
+            // Listener per Import (che triggerano input file nascosti)
+            DOMElements.importJsonBtn.addEventListener('click', () => DOMElements.importJsonInput.click());
+            DOMElements.importJsonInput.addEventListener('change', handleImportJSON);
+
+            DOMElements.importExcelBtn.addEventListener('click', () => DOMElements.importExcelInput.click());
+            DOMElements.importExcelInput.addEventListener('change', handleImportExcel);
+
+            // Listener Modale Reset
+            DOMElements.resetAppBtn.addEventListener('click', showResetModal);
+            DOMElements.modalCancelBtn.addEventListener('click', hideResetModal);
+            
+            DOMElements.modalConfirmResetBtn.dataset.loadingText = "Resetto...";
+            DOMElements.modalConfirmResetBtn.dataset.successText = "Resettato!";
+            DOMElements.modalConfirmResetBtn.addEventListener('click', (e) => handleAsyncButtonAction(e.currentTarget, handleResetApp));
+        }
+
+        // Avvia l'app
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
+
