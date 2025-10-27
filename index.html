@@ -114,6 +114,18 @@
         #toast-notification.show {
             bottom: 20px;
         }
+
+        /* Stili per lo slider della dimensione testo */
+        #view-grid {
+            --font-scale: 1; /* Default */
+        }
+        /* Seleziona gli elementi di testo *dentro* le card */
+        #view-grid .text-sm { font-size: calc(0.875rem * var(--font-scale)); }
+        #view-grid .text-xs { font-size: calc(0.75rem * var(--font-scale)); }
+        /* Applica anche ai bottoni */
+        #view-grid .copy-btn { font-size: calc(0.875rem * var(--font-scale)); }
+        #view-grid .copy-mention-btn { font-size: calc(0.75rem * var(--font-scale)); }
+
     </style>
 </head>
 <body class="bg-slate-50 text-gray-900">
@@ -127,8 +139,8 @@
             <p class="text-lg text-gray-600">Modifica e visualizza i tuoi post social.</p>
         </header>
 
-        <!-- Sezione Controlli Principali -->
-        <section class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+        <!-- Sezione Controlli Principali (Nascosta/Mostrata da JS) -->
+        <section id="controls-section" class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
             <h2 class="text-xl font-semibold text-brand-primary mb-4">Controlli</h2>
             
             <!-- Controlli Dati -->
@@ -175,6 +187,12 @@
                         Visualizza
                     </button>
                 </div>
+            </div>
+
+            <!-- Controllo Dimensione Testo (solo vista 'Visualizza') -->
+            <div id="text-size-controls" class="mt-4 pt-4 border-t border-gray-200 hidden">
+                <label for="text-size-slider" class="block text-sm font-medium text-gray-700 mb-1">Dimensione Testo</label>
+                <input id="text-size-slider" type="range" min="0.8" max="1.4" step="0.05" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary">
             </div>
         </section>
 
@@ -254,12 +272,12 @@
             facebook: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>',
             linkedin: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>',
             x: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>',
-            // CORREZIONE: 1.E381 è stato sostituito con 1.381
             instagram: '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C8.74 2 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.784.306-1.457.718-2.123 1.385S.935 3.356.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.784.718 1.457 1.385 2.123s1.339.815 2.123 1.12c.765.297 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.261 2.913-.558.784-.306 1.457-.718 2.123-1.385s.815-1.339 1.12-2.123c.297-.765.499-1.636.558-2.913C23.988 15.667 24 15.26 24 12s-.015-3.667-.072-4.947c-.06-1.277-.261-2.148-.558-2.913-.306-.784-.718-1.457-1.385-2.123S20.644.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.07 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.056 1.265.07 1.646.07 4.85s-.015 3.585-.07 4.85c-.053 1.17-.248 1.805-.413 2.227-.217.562-.477.96-.896 1.382-.42.419-.819.679-1.381.896-.422.164-1.057.36-2.227.413-1.265.056-1.646.07-4.85.07s-3.585-.015-4.85-.07c-1.17-.053-1.805-.248-2.227-.413-.562-.217-.96-.477-1.382-.896-.419-.42-.679-.819-.896-1.381-.164-.422-.36-1.057-.413-2.227-.056-1.265-.07-1.646-.07-4.85s.015-3.585.07-4.85c.053-1.17.248-1.805.413-2.227.217-.562.477.96.896 1.382.42-.419.819.679-1.381-.896.422-.164 1.057.36 2.227-.413C8.415 2.176 8.797 2.16 12 2.16zm0 2.713c-2.48 0-4.473 1.994-4.473 4.473s1.994 4.473 4.473 4.473 4.473-1.994 4.473-4.473S14.48 4.873 12 4.873zm0 7.23a2.757 2.757 0 110-5.514 2.757 2.757 0 010 5.514zm6.318-7.778a1.031 1.031 0 11-2.062 0 1.031 1.031 0 012.062 0z" clip-rule="evenodd" /></svg>'
         };
 
         // --- RIFERIMENTI DOM ---
         const DOMElements = {
+            controlsSection: document.getElementById('controls-section'), // NUOVO
             editView: document.getElementById('edit-view'),
             viewView: document.getElementById('view-view'),
             btnViewEdit: document.getElementById('btn-view-edit'),
@@ -279,6 +297,8 @@
             resetModal: document.getElementById('reset-modal'),
             modalCancelBtn: document.getElementById('modal-cancel-btn'),
             modalConfirmResetBtn: document.getElementById('modal-confirm-reset-btn'),
+            textSizeControls: document.getElementById('text-size-controls'), // NUOVO
+            textSizeSlider: document.getElementById('text-size-slider'), // NUOVO
         };
 
         // --- FUNZIONI DI RENDER ---
@@ -353,6 +373,10 @@
          */
         function renderViewView() {
             DOMElements.viewGrid.innerHTML = ''; // Pulisce la griglia
+
+            // Applica la scala del font corrente
+            const currentScale = DOMElements.textSizeSlider.value || 1;
+            DOMElements.viewGrid.style.setProperty('--font-scale', currentScale);
 
             if (editorialPlan.length === 0) {
                 DOMElements.viewGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Nessun post da visualizzare.</p>`;
@@ -561,7 +585,6 @@
                 return true;
             } catch (error) {
                 console.error("Errore esportazione JSON:", error);
-                // CORREZIONE: 'during' -> 'durante'
                 showToast('Errore durante l\'esportazione JSON', 'error');
                 return false;
             }
@@ -646,7 +669,6 @@
                 return true;
             } catch (error) {
                 console.error("Errore esportazione Excel:", error);
-                // CORREZIONE: 'during' -> 'durante'
                 showToast('Errore durante l\'esportazione Excel', 'error');
                 return false;
             }
@@ -661,16 +683,28 @@
         function setView(view) {
             currentView = view;
             if (view === 'edit') {
+                // Mostra elementi 'edit'
                 DOMElements.editView.classList.add('view-active');
-                DOMElements.viewView.classList.remove('view-active');
+                DOMElements.controlsSection.classList.remove('hidden');
                 DOMElements.btnViewEdit.classList.add('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                
+                // Nasconde elementi 'view'
+                DOMElements.viewView.classList.remove('view-active');
+                DOMElements.textSizeControls.classList.add('hidden');
                 DOMElements.btnViewCards.classList.remove('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                
                 renderEditView(); // Ridisegna per sicurezza
             } else {
-                DOMElements.editView.classList.remove('view-active');
+                // Mostra elementi 'view'
                 DOMElements.viewView.classList.add('view-active');
-                DOMElements.btnViewEdit.classList.remove('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                DOMElements.textSizeControls.classList.remove('hidden');
                 DOMElements.btnViewCards.classList.add('bg-gray-100', 'ring-2', 'ring-brand-primary');
+
+                // Nasconde elementi 'edit'
+                DOMElements.editView.classList.remove('view-active');
+                DOMElements.controlsSection.classList.add('hidden');
+                DOMElements.btnViewEdit.classList.remove('bg-gray-100', 'ring-2', 'ring-brand-primary');
+                
                 renderViewView(); // Ridisegna le card
             }
         }
@@ -816,6 +850,15 @@
             showToast('Applicazione resettata', 'success');
             return true; // Per la funzione handleAsyncButtonAction
         }
+        
+        /**
+         * Gestisce il cambio dello slider dimensione testo
+         */
+        function handleTextSizeChange(event) {
+            const scale = event.target.value;
+            // Applica la variabile CSS
+            DOMElements.viewGrid.style.setProperty('--font-scale', scale);
+        }
 
 
         // --- INIZIALIZZAZIONE ---
@@ -851,7 +894,7 @@
             DOMElements.importJsonBtn.addEventListener('click', () => DOMElements.importJsonInput.click());
             DOMElements.importJsonInput.addEventListener('change', handleImportJSON);
 
-DOMElements.importExcelBtn.addEventListener('click', () => DOMElements.importExcelInput.click());
+            DOMElements.importExcelBtn.addEventListener('click', () => DOMElements.importExcelInput.click());
             DOMElements.importExcelInput.addEventListener('change', handleImportExcel);
 
             // Listener Modale Reset
@@ -861,6 +904,9 @@ DOMElements.importExcelBtn.addEventListener('click', () => DOMElements.importExc
             DOMElements.modalConfirmResetBtn.dataset.loadingText = "Resetto...";
             DOMElements.modalConfirmResetBtn.dataset.successText = "Resettato!";
             DOMElements.modalConfirmResetBtn.addEventListener('click', (e) => handleAsyncButtonAction(e.currentTarget, handleResetApp));
+        
+            // Listener Slider Dimensione Testo
+            DOMElements.textSizeSlider.addEventListener('input', handleTextSizeChange);
         }
 
         // Avvia l'app
