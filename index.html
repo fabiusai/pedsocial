@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Gestore Piano Editoriale</title>
 
-    <!-- Tailwind (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind (CDN) --><script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- SheetJS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- SheetJS --><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root{
@@ -104,7 +102,7 @@
             position: relative;
             overflow: hidden;
         }
-        .btn-feedback .feedback-text { transition: transform .18s ease, opacity .15s ease; }
+        .btn-feedback .feedback-text { transition: transform .18s ease, box-shadow .12s ease, opacity .12s ease; }
         .btn-feedback .feedback-message {
             position: absolute;
             left: 50%;
@@ -136,10 +134,10 @@
 
         /* Card text scale variable */
         /* MODIFICATO: Applicato --font-scale a entrambe le griglie */
-        #view-grid, #showcase-grid { --font-scale: 1; } 
+        #view-grid, #showcase-carousel { --font-scale: 1; } /* Modificato showcase-grid */
         /* MODIFICATO: Applicata la regola .card-copy a entrambe le griglie */
         #view-grid .card-copy,
-        #showcase-grid .card-copy { font-size: calc(0.95rem * var(--font-scale)); }
+        #showcase-carousel .card-copy { font-size: calc(0.95rem * var(--font-scale)); } /* Modificato showcase-grid */
 
         /* Tiny utility for small labels */
         .chip {
@@ -153,17 +151,140 @@
             font-weight:600;
             font-size: .72rem;
         }
+
+        /* NUOVI Stili per Carousel e Timeline Vetrina (MODIFICATO) */
+        /* Contenitore principale della timeline con padding per etichette */
+        #showcase-timeline-container {
+            position: relative;
+            /* Aggiungi padding orizzontale per far visualizzare le etichette ai bordi */
+            padding-left: 50px; 
+            padding-right: 50px;
+        }
+
+        /* Timeline scorrevole */
+        #showcase-timeline {
+            overflow-x: auto;
+            overflow-y: visible; /* Aggiunto per non tagliare l'etichetta */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+            position: relative; /* Per posizionamento frecce */
+        }
+        #showcase-timeline::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        /* MODIFICATO: Wrapper per punto e etichetta */
+        #showcase-timeline .timeline-dot-wrapper {
+            position: relative;
+            flex-shrink: 0; /* Impedisce ai wrapper di rimpicciolirsi */
+            display: flex;
+            flex-direction: column; /* Cambiato a column */
+            align-items: center;
+            margin-bottom: 2rem; /* Spazio per l'etichetta sotto */
+            /* Controllo la spaziatura tra i punti per evitare overflow */
+            /* Usa gap per la spaziatura tra i punti */
+        }
+
+        /* MODIFICATO: Etichetta (nascosta di default) */
+        #showcase-timeline .timeline-label {
+            position: absolute;
+            top: 100%; /* Posizionata sotto il punto */
+            margin-top: 8px; /* Spazio dal punto */
+            padding: 4px 8px;
+            border-radius: 6px;
+            background-color: var(--poste-blue);
+            color: white;
+            font-size: 0.75rem; /* 12px */
+            font-weight: 600;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            white-space: nowrap;
+            opacity: 0; /* Nascosta */
+            transform: translateY(-4px); /* Animazione inversa */
+            transition: all .15s ease;
+            pointer-events: none; /* Non intercettare click */
+            z-index: 10; /* Assicura che l'etichetta sia sopra altri elementi */
+        }
+        
+        /* MODIFICATO: Punto cliccabile */
+        #showcase-timeline .timeline-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #e2e8f0; /* slate-200 */
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all .15s ease;
+            z-index: 5; /* Sopra la linea */
+        }
+
+        #showcase-timeline .timeline-dot:hover {
+            background-color: #cbd5e1; /* slate-300 */
+        }
+
+        /* MODIFICATO: Stile Attivo */
+        #showcase-timeline .timeline-dot-wrapper.active .timeline-dot {
+            background-color: var(--poste-blue);
+            border-color: white;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 4px rgba(1,70,188,0.2);
+        }
+        /* Mostra etichetta solo se attiva */
+        #showcase-timeline .timeline-dot-wrapper.active .timeline-label {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Stile per la card del carousel */
+        #showcase-carousel .showcase-card {
+            /* JS aggiungerà la card qui */
+            /* Aggiungo animazione fade-in */
+            animation: fadeIn .3s ease-out;
+            width: 100%; /* Assicura che la card occupi lo spazio */
+        }
+        
+        /* Controlli Carousel (posizionati sulla timeline) */
+        /* NUOVE REGOLE per i bottoni Prev/Next sulla timeline */
+        #showcase-timeline-container #showcase-prev,
+        #showcase-timeline-container #showcase-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(calc(-50% + 0.75rem)); /* Allineato alla linea blu */
+            z-index: 20; /* Sopra la timeline e i punti */
+            padding: 0.5rem; /* Rendi più facili da cliccare */
+            background-color: rgba(255,255,255,0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 9999px; /* Completamente tondo */
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #showcase-timeline-container #showcase-prev {
+            left: 0;
+            /* Per farlo sporgere un po' fuori dal padding del container */
+            margin-left: -20px; 
+        }
+
+        #showcase-timeline-container #showcase-next {
+            right: 0;
+            /* Per farlo sporgere un po' fuori dal padding del container */
+            margin-right: -20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
     </style>
 </head>
 <body class="antialiased">
 
-    <!-- Top bar -->
-    <div class="w-full bg-white sticky top-0 z-40">
+    <!-- Top bar --><div class="w-full bg-white sticky top-0 z-40">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-md flex items-center justify-center" style="background:var(--poste-yellow);">
-                    <!-- simple logo mark (generic, no names) -->
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <!-- simple logo mark (generic, no names) --><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <rect x="2" y="4" width="20" height="6" rx="1.5" fill="#0146bc" />
                         <rect x="2" y="14" width="12" height="6" rx="1.5" fill="#0146bc" />
                     </svg>
@@ -174,9 +295,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2"> <!-- Modificato: rimosso hidden sm:flex -->
-                <!-- Toggle views -->
-                <button id="btn-view-edit" class="btn-flat btn-neutral" title="Modalità Modifica">
+            <div class="flex items-center gap-2"> <!-- Modificato: rimosso hidden sm:flex --><!-- Toggle views --><button id="btn-view-edit" class="btn-flat btn-neutral" title="Modalità Modifica">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M4 21v-3.8l11.1-11.1 3.8 3.8L7.8 21H4z" stroke="#0f172a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <span>Modifica</span>
                 </button>
@@ -184,9 +303,8 @@
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
                     <span>Visualizza</span>
                 </button>
-                <!-- NUOVO BOTTONE VETRINA -->
-                <button id="btn-view-showcase" class="btn-flat btn-neutral" title="Modalità Vetrina">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <!-- NUOVO BOTTONE VETRINA --><button id="btn-view-showcase" class="btn-flat btn-neutral" title="Modalità Vetrina">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     <span>Vetrina</span>
                 </button>
             </div>
@@ -196,16 +314,14 @@
 
     <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- Controls top (mobile-friendly stack) -->
-        <section class="panel mb-6">
+        <!-- Controls top (mobile-friendly stack) --><section class="panel mb-6">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Controlli</h2>
                     <p class="text-sm text-slate-500 mt-1">Azioni principali per import, esport e gestione.</p>
                 </div>
 
-                <!-- Controlli Comuni -->
-                <div class="flex items-center gap-2">
+                <!-- Controlli Comuni --><div class="flex items-center gap-2">
                     <button id="save-local-btn" class="btn-flat btn-primary btn-feedback" data-loading-text="Salvataggio..." data-success-text="Salvato!">
                         <span class="feedback-text">Salva nel Browser</span>
                         <span class="feedback-message">Salvataggio...</span>
@@ -218,8 +334,7 @@
                 </div>
             </div>
 
-            <!-- Controlli condizionali (Req 2) -->
-            <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <!-- Controlli condizionali (Req 2) --><div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button id="import-json-btn" class="btn-flat btn-neutral">Importa JSON</button>
                 <input type="file" id="import-json-input" accept=".json" class="hidden">
 
@@ -238,28 +353,22 @@
             </div>
         </section>
 
-        <!-- Visualizzazione - mobile-first (cards) -->
-        <section id="view-view" class="mb-6">
+        <!-- Visualizzazione - mobile-first (cards) --><section id="view-view" class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h2 class="text-lg font-semibold">Visualizzazione</h2>
                     <p class="text-sm text-slate-500">Anteprima card per smartphone e tablet.</p>
                 </div>
 
-                <!-- Modificato per Req 3 (slider mobile) -->
-                <div class="flex items-center gap-2">
-                    <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label> <!-- Shorten text, hide on xs -->
-                    <div id="text-size-controls" class="w-32 sm:w-48"> <!-- Remove hidden, use responsive width -->
-                        <input id="text-size-slider" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
+                <!-- Modificato per Req 3 (slider mobile) --><div class="flex items-center gap-2">
+                    <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label> <!-- Shorten text, hide on xs --><div id="text-size-controls" class="w-32 sm:w-48"> <!-- Remove hidden, use responsive width --><input id="text-size-slider" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
                     </div>
                 </div>
             </div>
 
-            <!-- Filtri (NUOVO - Req 4) -->
-            <div class="panel my-4 p-3">
+            <!-- Filtri (NUOVO - Req 4) --><div class="panel my-4 p-3">
                 <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-                    <!-- Filtro Canali -->
-                    <div>
+                    <!-- Filtro Canali --><div>
                         <label class="text-sm font-semibold text-slate-700">Canali</label>
                         <div id="channel-filters" class="flex items-center gap-3 mt-1">
                             <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="Facebook" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">FB</span></label>
@@ -268,8 +377,7 @@
                             <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="Instagram" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">IG</span></label>
                         </div>
                     </div>
-                    <!-- Filtro Tipo -->
-                    <div>
+                    <!-- Filtro Tipo --><div>
                         <label class="text-sm font-semibold text-slate-700">Tipo</label>
                         <div id="type-filters" class="flex items-center gap-3 mt-1">
                             <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="post" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">Post</span></label>
@@ -280,12 +388,10 @@
             </div>
 
             <div id="view-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Card vengono iniettate da JS -->
-            </div>
+                <!-- Card vengono iniettate da JS --></div>
         </section>
 
-        <!-- Editing - desktop preferred -->
-        <section id="edit-view" class="mb-6">
+        <!-- Editing - desktop preferred --><section id="edit-view" class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h2 class="text-lg font-semibold">Modifica</h2>
@@ -293,6 +399,10 @@
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <!-- NUOVO Bottone Ordinamento --><button id="sort-posts-btn" class="btn-flat btn-neutral">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h9m-9 4h13M19 16l-4-4m0 0l-4 4m4-4v12"></path></svg>
+                        <span>Ordina per Data/Ora</span>
+                    </button>
                     <button id="add-post-btn" class="btn-flat btn-accent">
                         Aggiungi Post
                     </button>
@@ -303,11 +413,11 @@
                 <table id="edit-table" class="min-w-full w-full text-sm">
                     <thead>
                         <tr class="text-left text-xs text-slate-600 uppercase tracking-wide">
+                            <!-- NUOVA Colonna Data --><th class="py-3 px-3 w-32">Data</th>
                             <th class="py-3 px-3 w-24">Orario</th>
                             <th class="py-3 px-3">Testo</th>
                             <th class="py-3 px-3 w-40">Menzioni</th>
                             <th class="py-3 px-3 w-40">Asset</th>
-                            <!-- NUOVA COLONNA -->
                             <th class="py-3 px-3 w-40">Immagine (Base64)</th>
                             <th class="py-3 px-3 text-center w-12">FB</th>
                             <th class="py-3 px-3 text-center w-12">LI</th>
@@ -318,21 +428,18 @@
                         </tr>
                     </thead>
                     <tbody id="edit-table-body" class="bg-white">
-                        <!-- Rigenerato da JS -->
-                    </tbody>
+                        <!-- Rigenerato da JS --></tbody>
                 </table>
             </div>
         </section>
 
-        <!-- Vetrina (NUOVO - Req 4) -->
-        <section id="showcase-view" class="mb-6">
+        <!-- Vetrina (NUOVO - Req 4) - Ridisegnata con Carousel --><section id="showcase-view" class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h2 class="text-lg font-semibold">Vetrina</h2>
                     <p class="text-sm text-slate-500">Vista di sola lettura senza controlli.</p>
                 </div>
-                <!-- NUOVO: Cursore dimensione testo per Vetrina -->
-                <div class="flex items-center gap-2">
+                <!-- Cursore dimensione testo per Vetrina --><div class="flex items-center gap-2">
                     <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label>
                     <div id="text-size-controls-showcase" class="w-32 sm:w-48">
                         <input id="text-size-slider-showcase" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
@@ -340,17 +447,32 @@
                 </div>
             </div>
             
-            <!-- No filtri -->
+            <!-- NUOVA Timeline (MODIFICATA) --><div class="panel mb-6 pt-6 pb-12 px-4"> <!-- Rimosso 'overflow-hidden', Aumentato pt a pt-6 e pb a pb-12 --><h3 class="text-sm font-semibold text-slate-700 mb-6 text-center">Timeline</h3>
+                <!-- Wrapper per linea e punti --><div id="showcase-timeline-container" class="relative w-full flex items-center">
+                    <!-- Linea blu di sfondo --><div class="absolute top-1/2 left-0 w-full h-0.5 bg-[var(--poste-blue)] -translate-y-1/2" style="margin-top: 0.75rem;"></div> 
+                    <!-- Contenitore dei punti --><div id="showcase-timeline" class="relative w-full flex items-center justify-between gap-4"> <!-- Cambiato items-start a items-center --><!-- Punti e etichette iniettati da JS --></div>
+                    <!-- Controlli Carousel (ora sulla timeline) --><button id="showcase-prev" class="btn-flat p-2 disabled:opacity-50" title="Precedente">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <button id="showcase-next" class="btn-flat p-2 disabled:opacity-50" title="Successivo">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+            </div>
 
-            <div id="showcase-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Card vengono iniettate da JS -->
+            <!-- NUOVO Carousel --><!-- Wrapper per posizionamento bottoni --><div class="relative max-w-2xl mx-auto"> 
+                <div id="showcase-carousel" class="relative overflow-hidden">
+                    <!-- Card singola iniettata da JS --></div>
+            </div>
+            <p id="showcase-counter" class="text-center text-sm text-slate-500 mt-4"></p>
+            
+            <!-- Griglia nascosta (riferimento vecchio) --><div id="showcase-grid" class="hidden">
             </div>
         </section>
 
     </main>
 
-    <!-- Reset Modal -->
-    <div id="reset-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <!-- Reset Modal --><div id="reset-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
         <div class="w-full max-w-lg mx-4 panel">
             <h3 class="text-lg font-semibold text-slate-900">Conferma Reset</h3>
             <p class="text-sm text-slate-600 mt-2">Sei sicuro di voler resettare l'app? Tutti i dati verranno rimossi dal browser.</p>
@@ -365,52 +487,119 @@
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast-notification" class="fixed left-1/2 -translate-x-1/2 bottom-8"></div>
+    <!-- Toast --><div id="toast-notification" class="fixed left-1/2 -translate-x-1/2 bottom-8"></div>
 
-    <!-- SCRIPT (Modificato per le nuove richieste) -->
-    <script type="module">
+    <!-- SCRIPT (Modificato per le nuove richieste) --><script type="module">
     // --- STATO DELL'APPLICAZIONE ---
     let editorialPlan = [];
     let currentView = 'cards'; // Req 1: 'cards' (visualizza) è il default
+    let currentShowcaseIndex = 0; // NUOVO: Stato per carousel
     
     // Req 4: Stato iniziale filtri
     let viewFilters = { 
         channels: ['Facebook', 'Linkedin', 'X', 'Instagram'], 
-        types: ['post', 'ricondivisionE'] 
+        types: ['post', 'ricondivisione'] 
     };
 
     const defaultPlan = [];
 
-    // SVG icons (unchanged)
+    // --- Helpers Data ---
+    /**
+     * Formatta una data ISO (yyyy-mm-dd) in gg/mm/aa.
+     * @param {string} isoDate - Data in formato ISO.
+     * @returns {string} Data formattata o 'N/D'.
+     */
+    function formatItalianDate(isoDate) {
+        if (!isoDate || !isoDate.includes('-')) return 'N/D';
+        try {
+            // Aggiungiamo 'T00:00:00' per evitare problemi di fuso orario
+            const date = new Date(isoDate + 'T00:00:00');
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0'); // Mesi sono 0-indexed
+            const y = String(date.getFullYear()).slice(-2);
+            if (d === 'NaN') return 'N/D';
+            return `${d}/${m}/${y}`; // gg/mm/aa
+        } catch (e) {
+            console.error("Errore formattazione data:", e);
+            return 'N/D';
+        }
+    }
+
+    /**
+     * Tenta di parsare una stringa (es. da Excel) in formato ISO yyyy-mm-dd.
+     * @param {string} dateStr - Stringa data (es. gg/mm/aa, yyyy-mm-dd).
+     * @returns {string} Data in formato ISO o data odierna.
+     */
+    function parseToISODate(dateStr) {
+        const todayISO = new Date().toISOString().split('T')[0];
+        if (!dateStr) return todayISO;
+
+        try {
+            // Prova 1: è già ISO? (es. yyyy-mm-dd)
+            if (dateStr.includes('-') && dateStr.length >= 10) {
+                const [y, m, d] = dateStr.split('T')[0].split('-');
+                if (y.length === 4 && m && d) {
+                    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                }
+            }
+
+            // Prova 2: è formato italiano? (es. gg/mm/aa o gg/mm/yyyy)
+            if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                    let [d, m, y] = parts;
+                    if (y.length === 2) y = `20${y}`;
+                    if (y.length === 4 && d && m) {
+                        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                    }
+                }
+            }
+            
+            // Prova 3: è un numero seriale di Excel? (gestione base)
+            // Questo è complesso, per ora lo saltiamo e ci affidiamo a sheet_to_json
+            
+        } catch (e) {
+            console.error("Errore parsing data:", e);
+        }
+        // Default
+        return todayISO;
+    }
+
+    // SVG icons (MODIFICATO colore)
     const svgIcons = {
-        facebook: '<svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>',
-        linkedin: '<svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>',
-        x: '<svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>',
-        // Req 1: Icona Instagram cambiata
-        instagram: '<svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>'
+        facebook: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>',
+        linkedin: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>',
+        x: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>',
+        instagram: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>'
     };
 
-    // DOM refs (Aggiunti refs per Req 2, 4 e Vetrina)
+    // DOM refs (Aggiunti refs per Nuove Feat)
     const DOMElements = {
         controlsSection: document.querySelector('section.panel'),
         editView: document.getElementById('edit-view'),
         viewView: document.getElementById('view-view'),
         btnViewEdit: document.getElementById('btn-view-edit'),
         btnViewCards: document.getElementById('btn-view-cards'),
-        btnViewShowcase: document.getElementById('btn-view-showcase'), // NUOVO
+        btnViewShowcase: document.getElementById('btn-view-showcase'), 
         editTableBody: document.getElementById('edit-table-body'),
         viewGrid: document.getElementById('view-grid'),
-        showcaseView: document.getElementById('showcase-view'),     // NUOVO
-        showcaseGrid: document.getElementById('showcase-grid'),     // NUOVO
+        showcaseView: document.getElementById('showcase-view'),
+        showcaseGrid: document.getElementById('showcase-grid'), // Vecchia griglia
+        showcaseCarousel: document.getElementById('showcase-carousel'), // NUOVO
+        showcaseTimelineContainer: document.getElementById('showcase-timeline-container'), // NUOVO
+        showcaseTimeline: document.getElementById('showcase-timeline'), // NUOVO
+        showcasePrev: document.getElementById('showcase-prev'),         // NUOVO
+        showcaseNext: document.getElementById('showcase-next'),         // NUOVO
+        showcaseCounter: document.getElementById('showcase-counter'),   // NUOVO
         addPostBtn: document.getElementById('add-post-btn'),
+        sortPostsBtn: document.getElementById('sort-posts-btn'),     // NUOVO
         saveLocalBtn: document.getElementById('save-local-btn'),
-        importJsonBtn: document.getElementById('import-json-btn'), // Req 2
+        importJsonBtn: document.getElementById('import-json-btn'), 
         importJsonInput: document.getElementById('import-json-input'),
-        exportJsonBtn: document.getElementById('export-json-btn'), // Req 2
+        exportJsonBtn: document.getElementById('export-json-btn'), 
         importExcelBtn: document.getElementById('import-excel-btn'),
         importExcelInput: document.getElementById('import-excel-input'),
-        exportExcelBtn: document.getElementById('export-excel-btn'), // Req 2
+        exportExcelBtn: document.getElementById('export-excel-btn'), 
         toast: document.getElementById('toast-notification'),
         resetAppBtn: document.getElementById('reset-app-btn'),
         resetModal: document.getElementById('reset-modal'),
@@ -418,11 +607,11 @@
         modalConfirmResetBtn: document.getElementById('modal-confirm-reset-btn'),
         textSizeControls: document.getElementById('text-size-controls'),
         textSizeSlider: document.getElementById('text-size-slider'),
-        textSizeSliderShowcase: document.getElementById('text-size-slider-showcase'), // NUOVO
+        textSizeSliderShowcase: document.getElementById('text-size-slider-showcase'),
         importJsonInputEl: document.getElementById('import-json-input'),
         importExcelInputEl: document.getElementById('import-excel-input'),
-        channelFilters: document.getElementById('channel-filters'), // Req 4
-        typeFilters: document.getElementById('type-filters'), // Req 4
+        channelFilters: document.getElementById('channel-filters'), 
+        typeFilters: document.getElementById('type-filters'), 
     };
 
     // --- RENDER FUNCTIONS ---
@@ -431,16 +620,22 @@
 
         if (editorialPlan.length === 0) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="11" class="px-6 py-10 text-center text-slate-500">Nessun post presente. Aggiungine uno nuovo o importa un file.</td>`; // Colspan aggiornato
+            // Colspan aggiornato a 12
+            tr.innerHTML = `<td colspan="12" class="px-6 py-10 text-center text-slate-500">Nessun post presente. Aggiungine uno nuovo o importa un file.</td>`; 
             DOMElements.editTableBody.appendChild(tr);
             return;
         }
+
+        const todayISO = new Date().toISOString().split('T')[0];
 
         editorialPlan.forEach((post, index) => {
             const tr = document.createElement('tr');
             tr.className = index % 2 === 0 ? '' : 'bg-slate-50';
 
             tr.innerHTML = `
+                <!-- NUOVO Campo Data --><td class="px-4 py-3 align-top" style="width:140px;">
+                    <input type="date" class="text-sm w-full rounded-md border border-slate-200 p-2" value="${post.Data || todayISO}" data-index="${index}" data-field="Data">
+                </td>
                 <td class="px-4 py-3 align-top" style="width:110px;">
                     <input type="time" class="text-sm w-full rounded-md border border-slate-200 p-2" value="${(post.Orario || '09:00').substring(0,5)}" data-index="${index}" data-field="Orario">
                 </td>
@@ -453,7 +648,6 @@
                 <td class="px-4 py-3 align-top" style="min-width:160px;">
                     <textarea class="text-sm min-h-[90px] rounded-md border border-slate-200 p-2" data-index="${index}" data-field="Asset">${post.Asset || ''}</textarea>
                 </td>
-                <!-- NUOVO CAMPO TEXTAREA -->
                 <td class="px-4 py-3 align-top" style="min-width:160px;">
                     <textarea class="text-sm min-h-[90px] rounded-md border border-slate-200 p-2" data-index="${index}" data-field="ImmagineB64">${post.ImmagineB64 || ''}</textarea>
                 </td>
@@ -489,7 +683,7 @@
         });
     }
 
-    // MODIFICATA per Req 3, 4, 5, 6
+    // MODIFICATA per Data
     function renderViewView() {
         DOMElements.viewGrid.innerHTML = '';
 
@@ -505,9 +699,10 @@
             if (post.Instagram && viewFilters.channels.includes('Instagram')) channelMatch = true;
 
             const hasAnyChannel = post.Facebook || post.Linkedin || post.X || post.Instagram;
-            if (!hasAnyChannel) channelMatch = false; 
-            if (viewFilters.channels.length === 0) channelMatch = false; 
-
+            if (!hasAnyChannel && viewFilters.channels.length > 0) channelMatch = false; // Non mostrare se non ha canali e almeno un filtro è attivo
+            if (!hasAnyChannel && viewFilters.channels.length === 0) channelMatch = false; // Non mostrare se non ha canali e nessun filtro è attivo
+            if (hasAnyChannel && viewFilters.channels.length === 0) channelMatch = false; // Non mostrare se ha canali ma nessun filtro è selezionato
+            
             const isRicondivisione = post.Ricondivisione === true;
             let typeMatch = false;
             if (isRicondivisione && viewFilters.types.includes('ricondivisione')) {
@@ -545,22 +740,22 @@
                 </div>
             `;
 
-            // Req 3: Modifica layout Asset
+            // Req 3: Modifica layout Asset + NUOVA Data
             const infoHtml = `
                 <div class="mb-4 flex items-start justify-between">
                     <div>
-                        <p class="font-mono text-sm font-semibold text-[var(--poste-blue)]">${(post.Orario||'N/D').substring(0,5)}</p>
+                        <!-- NUOVA Data e Orario (MODIFICATO per Stile) --><p class="font-mono text-sm">
+                            <span class="font-semibold text-[var(--poste-blue)]">${formatItalianDate(post.Data)}</span>
+                            <span class="text-slate-500"> - ${(post.Orario||'N/D').substring(0,5)}</span>
+                        </p>
                     </div>
                     ${post.Ricondivisione ? '<span class="chip">Ricondivisione</span>' : ''}
                 </div>
-                <!-- Sezione Asset Modificata (Req 3) -->
-                <div class="mb-3">
+                <!-- Sezione Asset Modificata (Req 3) --><div class="mb-3">
                     <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
-                    <!-- Req 2: Aggiunto leading-snug per ridurre interlinea -->
-                    <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
+                    <!-- Req 2: Aggiunto leading-snug per ridurre interlinea --><p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
                     
-                    <!-- NUOVA Sezione Immagine -->
-                    ${
+                    <!-- Sezione Immagine -->${
                         post.ImmagineB64 && post.ImmagineB64.startsWith('data:image') 
                         ? `
                         <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
@@ -605,8 +800,7 @@
                         data-mention="${mentionText}" 
                         ${post.Ricondivisione ? 'disabled' : ''} /* Req 5: Disabilita copia */
                     >
-                        <span class="feedback-text">${mention}</span> <!-- Mostra sempre l'originale -->
-                        <span class="feedback-message">Copiato!</span>
+                        <span class="feedback-text">${mention}</span> <!-- Mostra sempre l'originale --><span class="feedback-message">Copiato!</span>
                     </button>`;
                 });
                 mentionsHtml += '</div>';
@@ -635,101 +829,162 @@
         });
     }
 
-    // NUOVA (Req 4): Funzione per Vetrina
+    // NUOVA: Funzione per Vetrina (Carousel)
     function renderShowcaseView() {
-        DOMElements.showcaseGrid.innerHTML = '';
+        DOMElements.showcaseCarousel.innerHTML = '';
+        DOMElements.showcaseTimeline.innerHTML = '';
+        
+        const currentScale = DOMElements.textSizeSliderShowcase ? DOMElements.textSizeSliderShowcase.value : 1;
+        DOMElements.showcaseCarousel.style.setProperty('--font-scale', currentScale);
 
-        const currentScale = DOMElements.textSizeSlider ? DOMElements.textSizeSlider.value : 1;
-        DOMElements.showcaseGrid.style.setProperty('--font-scale', currentScale);
-
-        // Vetrina non usa filtri, mostra tutto
-        const planToShow = editorialPlan;
-
-        if (planToShow.length === 0) {
-            DOMElements.showcaseGrid.innerHTML = `<p class="col-span-full text-center text-slate-500">Nessun post da visualizzare.</p>`;
+        if (editorialPlan.length === 0) {
+            DOMElements.showcaseCarousel.innerHTML = `<p class="col-span-full text-center text-slate-500 panel">Nessun post da visualizzare.</p>`;
+            DOMElements.showcaseCounter.textContent = '0 di 0';
+            DOMElements.showcasePrev.disabled = true;
+            DOMElements.showcaseNext.disabled = true;
             return;
         }
 
-        planToShow.forEach(post => {
-            const card = document.createElement('div');
-            // Stile (come view-view)
-            let cardClasses = 'border rounded-lg shadow-sm p-4 flex flex-col';
-            if (post.Ricondivisione) {
-                cardClasses += ' bg-slate-50 border-slate-200 opacity-80';
-            } else {
-                cardClasses += ' bg-white border-slate-100';
-            }
-            card.className = cardClasses;
+        // Assicura che l'indice sia valido
+        if (currentShowcaseIndex >= editorialPlan.length) {
+            currentShowcaseIndex = editorialPlan.length - 1;
+        }
+        if (currentShowcaseIndex < 0) {
+            currentShowcaseIndex = 0;
+        }
 
-            const socialHtml = `
-                <div class="flex items-center gap-3 mb-3">
-                    ${post.Facebook ? svgIcons.facebook : ''}
-                    ${post.Linkedin ? svgIcons.linkedin : ''}
-                    ${post.X ? svgIcons.x : ''}
-                    ${post.Instagram ? svgIcons.instagram : ''}
+        // Render Card Singola
+        const post = editorialPlan[currentShowcaseIndex];
+        const card = document.createElement('div');
+        let cardClasses = 'border rounded-lg shadow-sm p-4 flex flex-col showcase-card';
+        if (post.Ricondivisione) {
+            cardClasses += ' bg-slate-50 border-slate-200 opacity-90';
+        } else {
+            cardClasses += ' bg-white border-slate-100';
+        }
+        card.className = cardClasses;
+
+        const socialHtml = `
+            <div class="flex items-center gap-3 mb-3">
+                ${post.Facebook ? svgIcons.facebook : ''}
+                ${post.Linkedin ? svgIcons.linkedin : ''}
+                ${post.X ? svgIcons.x : ''}
+                ${post.Instagram ? svgIcons.instagram : ''}
+            </div>
+        `;
+
+        const infoHtml = `
+            <div class="mb-4 flex items-start justify-between">
+                <div>
+                    <!-- NUOVA Data e Orario (MODIFICATO per Stile) --><p class="font-mono text-sm">
+                        <span class="font-semibold text-[var(--poste-blue)]">${formatItalianDate(post.Data)}</span>
+                        <span class="text-slate-500"> - ${(post.Orario||'N/D').substring(0,5)}</span>
+                    </p>
                 </div>
-            `;
-
-            // Info (con fix line-height - Req 2)
-            const infoHtml = `
-                <div class="mb-4 flex items-start justify-between">
-                    <div>
-                        <p class="font-mono text-sm font-semibold text-[var(--poste-blue)]">${(post.Orario||'N/D').substring(0,5)}</p>
+                ${post.Ricondivisione ? '<span class="chip">Ricondivisione</span>' : ''}
+            </div>
+            <div class="mb-3">
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
+                <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
+                
+                <!-- Sezione Immagine -->${
+                    post.ImmagineB64 && post.ImmagineB64.startsWith('data:image') 
+                    ? `
+                    <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
+                        <img src="${post.ImmagineB64}" alt="Immagine asset" class="w-full h-auto object-cover" />
                     </div>
-                    ${post.Ricondivisione ? '<span class="chip">Ricondivisione</span>' : ''}
-                </div>
-                <div class="mb-3">
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
-                    <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
-                    
-                    <!-- NUOVA Sezione Immagine -->
-                    ${
-                        post.ImmagineB64 && post.ImmagineB64.startsWith('data:image') 
-                        ? `
-                        <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
-                            <img src="${post.ImmagineB64}" alt="Immagine asset" class="w-full h-auto object-cover" />
-                        </div>
-                        ` 
-                        : ''
-                    }
-                </div>
-            `;
+                    ` 
+                    : ''
+                }
+            </div>
+        `;
 
-            // Testo (SENZA bottone)
-            const copyHtml = `
-                <div class="mb-3 flex-grow">
-                    <h3 class="text-sm font-semibold text-slate-800 mb-1">Testo</h3>
-                    <p class="text-sm text-slate-700 card-copy whitespace-pre-wrap">${post.Testo || 'Nessun testo'}</p>
-                </div>
-            `;
+        const copyHtml = `
+            <div class="mb-3 flex-grow">
+                <h3 class="text-sm font-semibold text-slate-800 mb-1">Testo</h3>
+                <p class="text-sm text-slate-700 card-copy whitespace-pre-wrap">${post.Testo || 'Nessun testo'}</p>
+            </div>
+        `;
 
-            // Menzioni (SENZA bottoni, solo span)
-            const mentions = (post.Menzioni || '').split(/[\n,]/).map(m => m.trim()).filter(m => m.length > 0);
-            let mentionsHtml = '<div>';
-            mentionsHtml += '<h4 class="text-sm font-semibold text-slate-800 mb-2">Menzioni</h4>';
-            if (mentions.length > 0) {
-                mentionsHtml += '<div class="flex flex-wrap gap-2">';
-                mentions.forEach(mention => {
-                    // Sostituito button con span
-                    mentionsHtml += `<span class="inline-block text-xs py-1 px-3 rounded-lg bg-slate-100 text-slate-700 font-medium">
-                        ${mention}
-                    </span>`;
-                });
-                mentionsHtml += '</div>';
-            } else {
-                mentionsHtml += '<p class="text-sm text-slate-500">Nessuna menzione</p>';
-            }
+        const mentions = (post.Menzioni || '').split(/[\n,]/).map(m => m.trim()).filter(m => m.length > 0);
+        let mentionsHtml = '<div>';
+        mentionsHtml += '<h4 class="text-sm font-semibold text-slate-800 mb-2">Menzioni</h4>';
+        if (mentions.length > 0) {
+            mentionsHtml += '<div class="flex flex-wrap gap-2">';
+            mentions.forEach(mention => {
+                mentionsHtml += `<span class="inline-block text-xs py-1 px-3 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                    ${mention}
+                </span>`;
+            });
             mentionsHtml += '</div>';
+        } else {
+            mentionsHtml += '<p class="text-sm text-slate-500">Nessuna menzione</p>';
+        }
+        mentionsHtml += '</div>';
 
-            card.innerHTML = socialHtml + infoHtml + copyHtml + mentionsHtml;
-            DOMElements.showcaseGrid.appendChild(card);
+        card.innerHTML = socialHtml + infoHtml + copyHtml + mentionsHtml;
+        DOMElements.showcaseCarousel.appendChild(card);
+
+        // Render Timeline (MODIFICATO per linea e punti)
+        // Calcola la spaziatura dinamica per evitare overflow o eccessiva compressione
+        const numPosts = editorialPlan.length;
+        // Se ci sono pochi post, li distribuisco uniformemente con gap
+        // Altrimenti, li lascio compattati e scorrevoli
+        DOMElements.showcaseTimeline.style.gap = numPosts <= 7 ? 'auto' : '1.5rem'; // Auto distribuisce, 1.5rem fissa
+
+        editorialPlan.forEach((p, index) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = `timeline-dot-wrapper ${index === currentShowcaseIndex ? 'active' : ''}`;
+            wrapper.dataset.index = index;
+
+            const time = (p.Orario || 'N/D').substring(0,5);
+            const date = formatItalianDate(p.Data);
+
+            // Punto cliccabile
+            const dot = document.createElement('button');
+            dot.className = 'timeline-dot';
+            dot.title = `${date} - ${time}`; // Tooltip
+            wrapper.appendChild(dot);
             
-            // No event listeners needed
+            // Etichetta (visibile solo se active) - ORA SOTTO
+            const label = document.createElement('span');
+            label.className = 'timeline-label';
+            label.innerHTML = `${date} &middot; ${time}`;
+            wrapper.appendChild(label);
+            
+            wrapper.addEventListener('click', () => setShowcasePost(index));
+            DOMElements.showcaseTimeline.appendChild(wrapper);
         });
+
+        // Aggiorna Controlli
+        DOMElements.showcaseCounter.textContent = `Post ${currentShowcaseIndex + 1} di ${editorialPlan.length}`;
+        DOMElements.showcasePrev.disabled = (currentShowcaseIndex === 0);
+        DOMElements.showcaseNext.disabled = (currentShowcaseIndex === editorialPlan.length - 1);
+        
+        // Scrolla la timeline per mostrare il punto attivo
+        const activeWrapper = DOMElements.showcaseTimeline.querySelector('.active');
+        if (activeWrapper) {
+            // Aggiungo un offset per centrare il punto visivamente
+            const offset = (DOMElements.showcaseTimeline.offsetWidth / 2) - (activeWrapper.offsetWidth / 2);
+            DOMElements.showcaseTimeline.scroll({
+                left: activeWrapper.offsetLeft - offset, 
+                behavior: 'smooth' 
+            });
+        }
+    }
+    
+    /**
+     * NUOVO: Imposta il post corrente nel carousel
+     * @param {number} index - Indice del post da mostrare
+     */
+    function setShowcasePost(index) {
+        if (index < 0 || index >= editorialPlan.length) return;
+        currentShowcaseIndex = index;
+        renderShowcaseView();
     }
 
 
-    // --- Dati e utility (come prima) ---
+    // --- Dati e utility (Modificate per Data) ---
     function updatePlanData(event) {
         const index = event.target.dataset.index;
         const field = event.target.dataset.field;
@@ -742,11 +997,12 @@
 
     function addNewPost() {
         const newPost = {
+            Data: new Date().toISOString().split('T')[0], // NUOVO CAMPO
             Orario: "12:00",
             Testo: "",
             Menzioni: "",
             Asset: "",
-            ImmagineB64: "", // NUOVO CAMPO
+            ImmagineB64: "", 
             Facebook: false,
             Linkedin: false,
             X: false,
@@ -758,6 +1014,9 @@
         if (DOMElements.editTableBody.lastChild) {
             DOMElements.editTableBody.lastChild.scrollIntoView({ behavior: "smooth" });
         }
+        // Aggiorna anche le altre viste
+        renderViewView();
+        renderShowcaseView();
     }
 
     function removePost(event) {
@@ -767,6 +1026,29 @@
         renderViewView();
         renderShowcaseView(); // Aggiunto
         showToast('Post rimosso', 'success');
+    }
+
+    /**
+     * NUOVO: Ordina i post per data e ora
+     */
+    function sortPosts() {
+        try {
+            editorialPlan.sort((a, b) => {
+                const dateTimeA = `${a.Data || '1970-01-01'}T${a.Orario || '00:00'}`;
+                const dateTimeB = `${b.Data || '1970-01-01'}T${b.Orario || '00:00'}`;
+                return new Date(dateTimeA) - new Date(dateTimeB);
+            });
+            // Resetta carousel
+            currentShowcaseIndex = 0;
+            // Re-render
+            renderEditView();
+            renderViewView();
+            renderShowcaseView();
+            showToast('Post ordinati per data e ora', 'success');
+        } catch (e) {
+            console.error("Errore ordinamento:", e);
+            showToast('Errore durante l\'ordinamento', 'error');
+        }
     }
 
     function saveData() {
@@ -795,7 +1077,7 @@
         }
     }
 
-    // --- Import / Export (unchanged logica) ---
+    // --- Import / Export (Modificati per Data) ---
     function handleImportJSON(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -804,7 +1086,11 @@
             try {
                 const importedData = JSON.parse(e.target.result);
                 if (Array.isArray(importedData)) {
-                    editorialPlan = importedData;
+                    editorialPlan = importedData.map(post => ({
+                        ...post,
+                        Data: parseToISODate(post.Data) // Assicura formato corretto
+                    }));
+                    currentShowcaseIndex = 0; // Resetta carousel
                     renderEditView();
                     renderViewView();
                     renderShowcaseView(); // Aggiunto
@@ -851,13 +1137,16 @@
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+                // raw: false tenta di formattare le date
+                const json = XLSX.utils.sheet_to_json(worksheet, { raw: false }); 
+                
                 const normalizedPlan = json.map(row => ({
+                    Data: parseToISODate(row.Data), // NUOVO CAMPO
                     Orario: (row.Orario || "00:00").substring(0,5),
                     Testo: row.Testo || "",
                     Menzioni: row.Menzioni || "",
                     Asset: row.Asset || "",
-                    ImmagineB64: row.ImmagineB64 || row["Immagine (Base64)"] || "", // NUOVO CAMPO
+                    ImmagineB64: row.ImmagineB64 || row["Immagine (Base64)"] || "", 
                     Facebook: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Facebook).toLowerCase()),
                     Linkedin: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Linkedin).toLowerCase()),
                     X: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.X).toLowerCase()),
@@ -865,6 +1154,7 @@
                     Ricondivisione: ['true', '✔', '1', 'sì', 'si', 'yes', 'y', 'ricondivisione'].includes(String(row.Ricondivisione || row["Ricondivisione post"] || '').toLowerCase())
                 }));
                 editorialPlan = normalizedPlan;
+                currentShowcaseIndex = 0; // Resetta carousel
                 renderEditView();
                 renderViewView();
                 renderShowcaseView(); // Aggiunto
@@ -880,21 +1170,42 @@
 
     function exportExcel(button) {
         try {
+            // Formatta la data per l'export
             const dataToExport = editorialPlan.map(post => ({
-                ...post,
-                ImmagineB64: post.ImmagineB64 || '', // NUOVO CAMPO
+                Data: formatItalianDate(post.Data), // Formattato gg/mm/aa
+                Orario: post.Orario,
+                Testo: post.Testo,
+                Menzioni: post.Menzioni,
+                Asset: post.Asset,
+                ImmagineB64: post.ImmagineB64 || '', 
                 Facebook: post.Facebook ? '✔' : '',
                 Linkedin: post.Linkedin ? '✔' : '',
                 X: post.X ? '✔' : '',
                 Instagram: post.Instagram ? '✔' : '',
                 Ricondivisione: post.Ricondivisione ? '✔' : '',
             }));
+            
+            // Crea un nuovo array per l'ordine delle colonne
+            const orderedData = dataToExport.map(post => ({
+                'Data': post.Data,
+                'Orario': post.Orario,
+                'Testo': post.Testo,
+                'Menzioni': post.Menzioni,
+                'Asset': post.Asset,
+                'ImmagineB64': post.ImmagineB64,
+                'Facebook': post.Facebook,
+                'Linkedin': post.Linkedin,
+                'X': post.X,
+                'Instagram': post.Instagram,
+                'Ricondivisione': post.Ricondivisione
+            }));
 
-            const ws = XLSX.utils.json_to_sheet(dataToExport);
-            ws['!cols'] = [ // Aggiornato per 10 colonne
-                { wch: 10 }, { wch: 60 }, { wch: 30 }, { wch: 30 }, { wch: 40 }, // Aggiunto ImmagineB64
-                { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 8 }
-            ];
+            const ws = XLSX.utils.json_to_sheet(orderedData);
+            // ws['!cols'] = [ // Aggiornato per 11 colonne
+            //     { wch: 10 }, { wch: 10 }, { wch: 60 }, { wch: 30 }, { wch: 30 }, { wch: 40 }, 
+            //     { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 8 }
+            // ];
+            // Lasciamo che XLSX gestisca le larghezze automatiche per semplicità
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Piano Editoriale');
             XLSX.writeFile(wb, 'piano_editoriale.xlsx');
@@ -908,11 +1219,10 @@
 
     // --- UI utilities ---
     
-    // NUOVA (Req 6): Determina testo da copiare
+    // (Req 6): Determina testo da copiare
     function getCopyText(post) {
         let mainText = post.Testo || '';
         
-        // Request 6: Aggiungi menzioni per X
         if (post.X) {
             const mentions = (post.Menzioni || '').split(/[\n,]/).map(m => m.trim()).filter(m => m.length > 0);
             if (mentions.length > 0) {
@@ -922,7 +1232,7 @@
         return mainText;
     }
     
-    // NUOVA (Req 4): Gestione filtri
+    // (Req 4): Gestione filtri
     function handleFilterChange() {
         // Update channel filters
         const checkedChannels = [];
@@ -939,10 +1249,10 @@
         viewFilters.types = checkedTypes;
 
         // Re-render the view
-        renderViewView(); // <-- Aggiunto render mancante
-    } // <-- PARENTESI MANCANTE AGGIUNTA QUI
+        renderViewView();
+    }
 
-    // NUOVA (Req 2 e 4): Mostra/nascondi bottoni e controlli
+    // (Req 2 e 4): Mostra/nascondi bottoni e controlli
     function updateControlVisibility(view) {
         if (view === 'showcase') {
             // Vetrina: nascondi tutti i controlli
@@ -1028,7 +1338,7 @@
     }
 
     function showButtonFeedback(button, message, state='success') {
-        const originalTextEl = button.querySelector('.feedback-text');
+        // const originalTextEl = button.querySelector('.feedback-text');
         const messageEl = button.querySelector('.feedback-message');
         if (messageEl) messageEl.textContent = message;
         button.classList.add(state);
@@ -1038,12 +1348,18 @@
             // Ri-abilita il bottone SOLO SE non è un bottone 
             // di ricondivisione (Req 5)
             const isRicondivisioneCopy = button.classList.contains('copy-btn') && 
-                                          button.textContent.includes('Non copiabile');
-            const isRicondivisioneMention = button.classList.contains('copy-mention-btn') &&
-                                             button.disabled; // Se era disabilitato in partenza
+                                          button.querySelector('.feedback-text').textContent.includes('Non copiabile');
+            
+            // Verifica se il bottone delle menzioni appartiene a una card disabilitata
+            const parentCard = button.closest('.opacity-80');
+            const isRicondivisioneMention = button.classList.contains('copy-mention-btn') && parentCard;
+
 
             if (!isRicondivisioneCopy && !isRicondivisioneMention) {
                  button.disabled = false;
+            } else {
+                // Se è ricondivisione, lascialo disabilitato
+                button.disabled = true;
             }
         }, 1500);
     }
@@ -1084,6 +1400,7 @@
         hideResetModal();
         editorialPlan = [];
         localStorage.removeItem('socialPlan');
+        currentShowcaseIndex = 0; // Resetta carousel
         renderEditView();
         renderViewView();
         renderShowcaseView(); // Aggiunto
@@ -1093,9 +1410,9 @@
 
     function handleTextSizeChange(e) {
         const scale = e.target.value;
-        // Update both grids
+        // Update both view and showcase
         DOMElements.viewGrid.style.setProperty('--font-scale', scale);
-        DOMElements.showcaseGrid.style.setProperty('--font-scale', scale); // Aggiunto
+        DOMElements.showcaseCarousel.style.setProperty('--font-scale', scale); // Modificato
 
         // Sync the other slider
         if (e.target.id === 'text-size-slider') {
@@ -1142,7 +1459,7 @@
         }
     }
 
-    // --- INIT (MODIFICATO per Req 1, 2, 4) ---
+    // --- INIT (MODIFICATO per Nuove Feat) ---
     function initApp() {
         loadData();
         setView(currentView); // Imposta la vista di default (cards) e i bottoni (Req 1 & 2)
@@ -1153,6 +1470,7 @@
         DOMElements.btnViewShowcase && DOMElements.btnViewShowcase.addEventListener('click', ()=> setView('showcase')); // Aggiunto
 
         DOMElements.addPostBtn && DOMElements.addPostBtn.addEventListener('click', addNewPost);
+        DOMElements.sortPostsBtn && DOMElements.sortPostsBtn.addEventListener('click', sortPosts); // NUOVO
 
         DOMElements.saveLocalBtn && (DOMElements.saveLocalBtn.addEventListener('click', (e)=> handleAsyncButtonAction(e.currentTarget, saveData)));
 
@@ -1162,7 +1480,7 @@
         DOMElements.importJsonBtn && DOMElements.importJsonBtn.addEventListener('click', ()=> DOMElements.importJsonInput.click());
         DOMElements.importJsonInput && DOMElements.importJsonInput.addEventListener('change', handleImportJSON);
 
-DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click', ()=> DOMElements.importExcelInput.click());
+        DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click', ()=> DOMElements.importExcelInput.click());
         DOMElements.importExcelInput && DOMElements.importExcelInput.addEventListener('change', handleImportExcel);
 
         DOMElements.resetAppBtn && DOMElements.resetAppBtn.addEventListener('click', showResetModal);
@@ -1171,25 +1489,30 @@ DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click
         DOMElements.modalConfirmResetBtn && (DOMElements.modalConfirmResetBtn.addEventListener('click', (e)=> handleAsyncButtonAction(e.currentTarget, handleResetApp)));
 
         DOMElements.textSizeSlider && DOMElements.textSizeSlider.addEventListener('input', handleTextSizeChange);
-        DOMElements.textSizeSliderShowcase && DOMElements.textSizeSliderShowcase.addEventListener('input', handleTextSizeChange); // NUOVO LISTENER
+        DOMElements.textSizeSliderShowcase && DOMElements.textSizeSliderShowcase.addEventListener('input', handleTextSizeChange);
 
         // Req 4: Filter Listeners
         DOMElements.channelFilters && DOMElements.channelFilters.addEventListener('change', handleFilterChange);
         DOMElements.typeFilters && DOMElements.typeFilters.addEventListener('change', handleFilterChange);
+        
+        // NUOVO: Carousel Listeners
+        DOMElements.showcasePrev.addEventListener('click', () => { 
+            if (currentShowcaseIndex > 0) setShowcasePost(currentShowcaseIndex - 1); 
+        });
+        DOMElements.showcaseNext.addEventListener('click', () => { 
+            if (currentShowcaseIndex < editorialPlan.length - 1) setShowcasePost(currentShowcaseIndex + 1); 
+        });
+
 
         // initial render (setView già chiama i render giusti)
-        // renderEditView();
-        // renderViewView();
-
-        // Rimosso resize listener automatico (Req 1)
-        // window.addEventListener('resize', () => { ... });
+        // Dobbiamo chiamarli tutti per sicurezza dopo il load
+        renderEditView();
+        renderViewView();
+        renderShowcaseView();
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
-
-
-
 
