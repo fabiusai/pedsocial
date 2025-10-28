@@ -326,7 +326,13 @@
                     <h2 class="text-lg font-semibold">Vetrina</h2>
                     <p class="text-sm text-slate-500">Vista di sola lettura senza controlli.</p>
                 </div>
-                <!-- Nessun controllo dimensione testo qui, usa quello di Visualizza -->
+                <!-- NUOVO: Cursore dimensione testo per Vetrina -->
+                <div class="flex items-center gap-2">
+                    <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label>
+                    <div id="text-size-controls-showcase" class="w-32 sm:w-48">
+                        <input id="text-size-slider-showcase" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
+                    </div>
+                </div>
             </div>
             
             <!-- No filtri -->
@@ -407,6 +413,7 @@
         modalConfirmResetBtn: document.getElementById('modal-confirm-reset-btn'),
         textSizeControls: document.getElementById('text-size-controls'),
         textSizeSlider: document.getElementById('text-size-slider'),
+        textSizeSliderShowcase: document.getElementById('text-size-slider-showcase'), // NUOVO
         importJsonInputEl: document.getElementById('import-json-input'),
         importExcelInputEl: document.getElementById('import-excel-input'),
         channelFilters: document.getElementById('channel-filters'), // Req 4
@@ -1052,8 +1059,16 @@
 
     function handleTextSizeChange(e) {
         const scale = e.target.value;
+        // Update both grids
         DOMElements.viewGrid.style.setProperty('--font-scale', scale);
         DOMElements.showcaseGrid.style.setProperty('--font-scale', scale); // Aggiunto
+
+        // Sync the other slider
+        if (e.target.id === 'text-size-slider') {
+            if (DOMElements.textSizeSliderShowcase) DOMElements.textSizeSliderShowcase.value = scale;
+        } else if (e.target.id === 'text-size-slider-showcase') {
+            if (DOMElements.textSizeSlider) DOMElements.textSizeSlider.value = scale;
+        }
     }
 
     // View toggle (MODIFICATO per Req 2 e 4)
@@ -1122,6 +1137,7 @@ DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click
         DOMElements.modalConfirmResetBtn && (DOMElements.modalConfirmResetBtn.addEventListener('click', (e)=> handleAsyncButtonAction(e.currentTarget, handleResetApp)));
 
         DOMElements.textSizeSlider && DOMElements.textSizeSlider.addEventListener('input', handleTextSizeChange);
+        DOMElements.textSizeSliderShowcase && DOMElements.textSizeSliderShowcase.addEventListener('input', handleTextSizeChange); // NUOVO LISTENER
 
         // Req 4: Filter Listeners
         DOMElements.channelFilters && DOMElements.channelFilters.addEventListener('change', handleFilterChange);
@@ -1139,3 +1155,5 @@ DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click
     </script>
 </body>
 </html>
+
+
