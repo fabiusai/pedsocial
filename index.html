@@ -41,19 +41,25 @@
             transition: transform .08s ease, box-shadow .12s ease, opacity .12s ease;
         }
         .btn-flat:active { transform: translateY(1px); }
+        .btn-flat:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         /* Primary / Secondary buttons */
         .btn-primary {
             background: var(--poste-blue);
             color: white;
         }
-        .btn-primary:hover { opacity: 0.95; }
+        .btn-primary:hover:not(:disabled) { opacity: 0.95; }
 
         .btn-accent {
             background: var(--poste-yellow);
             color: rgba(0,0,0,0.85);
         }
-        .btn-accent:hover { filter:brightness(.98); }
+        .btn-accent:hover:not(:disabled) { filter:brightness(.98); }
 
         /* Neutral buttons */
         .btn-neutral {
@@ -61,7 +67,7 @@
             color: #0f172a;
             border: 1px solid #e6e9ee;
         }
-        .btn-neutral:hover { box-shadow: 0 6px 18px rgba(2,6,23,0.04); }
+        .btn-neutral:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(2,6,23,0.04); }
 
         /* Section cards */
         .panel {
@@ -80,16 +86,15 @@
             box-shadow: 0 2px 8px rgba(1,70,188,0.06);
         }
 
-        /* Responsive view rules: mobile-first */
-        /* Default: show cards view (mobile-friendly), hide edit on small screens */
+        /* Responsive view rules: MODIFICATO (Req 1) */
+        /* Default: show cards view (visualizza) */
         #edit-view { display: none; }
+        #showcase-view { display: none; } /* Aggiunto */
         #view-view { display: block; }
-
-        /* On wider screens prefer edit view (desktop editing) */
-        @media (min-width: 1024px) {
-            #edit-view { display: block; }
-            #view-view { display: none; }
-        }
+        
+        /* Rimosse regole media query che forzavano la vista 'edit' su desktop.
+         L'utente ora controlla la vista con i bottoni.
+        */
 
         /* Table controls: make scrollable on small screens */
         .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -166,8 +171,8 @@
                 </div>
             </div>
 
-            <div class="hidden sm:flex items-center gap-2">
-                <!-- Toggle views on desktop -->
+            <div class="flex items-center gap-2"> <!-- Modificato: rimosso hidden sm:flex -->
+                <!-- Toggle views -->
                 <button id="btn-view-edit" class="btn-flat btn-neutral" title="Modalità Modifica">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M4 21v-3.8l11.1-11.1 3.8 3.8L7.8 21H4z" stroke="#0f172a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <span>Modifica</span>
@@ -175,6 +180,11 @@
                 <button id="btn-view-cards" class="btn-flat btn-primary" title="Modalità Visualizza">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
                     <span>Visualizza</span>
+                </button>
+                <!-- NUOVO BOTTONE VETRINA -->
+                <button id="btn-view-showcase" class="btn-flat btn-neutral" title="Modalità Vetrina">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>Vetrina</span>
                 </button>
             </div>
         </div>
@@ -191,6 +201,7 @@
                     <p class="text-sm text-slate-500 mt-1">Azioni principali per import, esport e gestione.</p>
                 </div>
 
+                <!-- Controlli Comuni -->
                 <div class="flex items-center gap-2">
                     <button id="save-local-btn" class="btn-flat btn-primary btn-feedback" data-loading-text="Salvataggio..." data-success-text="Salvato!">
                         <span class="feedback-text">Salva nel Browser</span>
@@ -204,6 +215,7 @@
                 </div>
             </div>
 
+            <!-- Controlli condizionali (Req 2) -->
             <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button id="import-json-btn" class="btn-flat btn-neutral">Importa JSON</button>
                 <input type="file" id="import-json-input" accept=".json" class="hidden">
@@ -231,10 +243,35 @@
                     <p class="text-sm text-slate-500">Anteprima card per smartphone e tablet.</p>
                 </div>
 
+                <!-- Modificato per Req 3 (slider mobile) -->
                 <div class="flex items-center gap-2">
-                    <label class="text-sm text-slate-600 mr-2 hidden lg:inline">Dimensione testo</label>
-                    <div id="text-size-controls" class="w-48 hidden lg:block">
+                    <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label> <!-- Shorten text, hide on xs -->
+                    <div id="text-size-controls" class="w-32 sm:w-48"> <!-- Remove hidden, use responsive width -->
                         <input id="text-size-slider" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtri (NUOVO - Req 4) -->
+            <div class="panel my-4 p-3">
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    <!-- Filtro Canali -->
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Canali</label>
+                        <div id="channel-filters" class="flex items-center gap-3 mt-1">
+                            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="Facebook" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">FB</span></label>
+                            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="Linkedin" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">LI</span></label>
+                            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="X" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">X</span></label>
+                            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="Instagram" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">IG</span></label>
+                        </div>
+                    </div>
+                    <!-- Filtro Tipo -->
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Tipo</label>
+                        <div id="type-filters" class="flex items-center gap-3 mt-1">
+                            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="post" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">Post</span></label>
+                            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="ricondivisione" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">Ricondivisione</span></label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -282,6 +319,23 @@
             </div>
         </section>
 
+        <!-- Vetrina (NUOVO - Req 4) -->
+        <section id="showcase-view" class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-lg font-semibold">Vetrina</h2>
+                    <p class="text-sm text-slate-500">Vista di sola lettura senza controlli.</p>
+                </div>
+                <!-- Nessun controllo dimensione testo qui, usa quello di Visualizza -->
+            </div>
+            
+            <!-- No filtri -->
+
+            <div id="showcase-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Card vengono iniettate da JS -->
+            </div>
+        </section>
+
     </main>
 
     <!-- Reset Modal -->
@@ -303,11 +357,17 @@
     <!-- Toast -->
     <div id="toast-notification" class="fixed left-1/2 -translate-x-1/2 bottom-8"></div>
 
-    <!-- SCRIPT (mantengo la logica JS attuale - con lieve miglioramento per vista iniziale responsive) -->
+    <!-- SCRIPT (Modificato per le nuove richieste) -->
     <script type="module">
     // --- STATO DELL'APPLICAZIONE ---
     let editorialPlan = [];
-    let currentView = (window.innerWidth < 1024) ? 'cards' : 'edit'; // mobile -> cards (visualizza), desktop -> edit
+    let currentView = 'cards'; // Req 1: 'cards' (visualizza) è il default
+    
+    // Req 4: Stato iniziale filtri
+    let viewFilters = { 
+        channels: ['Facebook', 'Linkedin', 'X', 'Instagram'], 
+        types: ['post', 'ricondivisionE'] 
+    };
 
     const defaultPlan = [];
 
@@ -316,26 +376,30 @@
         facebook: '<svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>',
         linkedin: '<svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>',
         x: '<svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>',
-        instagram: '<svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C8.74 2 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.784.306-1.457.718-2.123 1.385S.935 3.356.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.784.718 1.457 1.385 2.123s1.339.815 2.123 1.12c.765.297 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.261 2.913-.558.784-.306 1.457-.718 2.123-1.385s.815-1.339 1.12-2.123c.297-.765.499-1.636.558-2.913C23.988 15.667 24 15.26 24 12s-.015-3.667-.072-4.947c-.06-1.277-.261-2.148-.558-2.913-.306-.784-.718-1.457-1.385-2.123S20.644.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.07 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.056 1.265.07 1.646.07 4.85s-.015 3.585-.07 4.85c-.053 1.17-.248 1.805-.413 2.227-.217.562-.477.96-.896 1.382-.42.419-.819.679-1.381.896-.422.164-1.057.36-2.227.413-1.265.056-1.646.07-4.85.07s-3.585-.015-4.85-.07c-1.17-.053-1.805-.248-2.227-.413-.562-.217-.96-.477-1.382-.896-.419-.42-.679-.819-.896-1.381-.164-.422-.36-1.057-.413-2.227-.056-1.265-.07-1.646-.07-4.85s.015-3.585.07-4.85c.053-1.17.248-1.805.413-2.227.217-.562.477-.96.896-1.382.42-.419.819-.679 1.381-.896.422-.164 1.057-.36 2.227-.413C8.415 2.176 8.797 2.16 12 2.16zm0 2.713c-2.48 0-4.473 1.994-4.473 4.473s1.994 4.473 4.473 4.473 4.473-1.994 4.473-4.473S14.48 4.873 12 4.873zm0 7.23a2.757 2.757 0 110-5.514 2.757 2.757 0 010 5.514zm6.318-7.778a1.031 1.031 0 11-2.062 0 1.031 1.031 0 012.062 0z" clip-rule="evenodd" /></svg>'
+        // Req 1: Icona Instagram cambiata
+        instagram: '<svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>'
     };
 
-    // DOM refs (come prima)
+    // DOM refs (Aggiunti refs per Req 2, 4 e Vetrina)
     const DOMElements = {
         controlsSection: document.querySelector('section.panel'),
         editView: document.getElementById('edit-view'),
         viewView: document.getElementById('view-view'),
         btnViewEdit: document.getElementById('btn-view-edit'),
         btnViewCards: document.getElementById('btn-view-cards'),
+        btnViewShowcase: document.getElementById('btn-view-showcase'), // NUOVO
         editTableBody: document.getElementById('edit-table-body'),
         viewGrid: document.getElementById('view-grid'),
+        showcaseView: document.getElementById('showcase-view'),     // NUOVO
+        showcaseGrid: document.getElementById('showcase-grid'),     // NUOVO
         addPostBtn: document.getElementById('add-post-btn'),
         saveLocalBtn: document.getElementById('save-local-btn'),
-        importJsonBtn: document.getElementById('import-json-btn'),
+        importJsonBtn: document.getElementById('import-json-btn'), // Req 2
         importJsonInput: document.getElementById('import-json-input'),
-        exportJsonBtn: document.getElementById('export-json-btn'),
+        exportJsonBtn: document.getElementById('export-json-btn'), // Req 2
         importExcelBtn: document.getElementById('import-excel-btn'),
         importExcelInput: document.getElementById('import-excel-input'),
-        exportExcelBtn: document.getElementById('export-excel-btn'),
+        exportExcelBtn: document.getElementById('export-excel-btn'), // Req 2
         toast: document.getElementById('toast-notification'),
         resetAppBtn: document.getElementById('reset-app-btn'),
         resetModal: document.getElementById('reset-modal'),
@@ -345,9 +409,11 @@
         textSizeSlider: document.getElementById('text-size-slider'),
         importJsonInputEl: document.getElementById('import-json-input'),
         importExcelInputEl: document.getElementById('import-excel-input'),
+        channelFilters: document.getElementById('channel-filters'), // Req 4
+        typeFilters: document.getElementById('type-filters'), // Req 4
     };
 
-    // --- RENDER FUNCTIONS (kept behavior) ---
+    // --- RENDER FUNCTIONS ---
     function renderEditView() {
         DOMElements.editTableBody.innerHTML = '';
 
@@ -407,20 +473,52 @@
         });
     }
 
+    // MODIFICATA per Req 3, 4, 5, 6
     function renderViewView() {
         DOMElements.viewGrid.innerHTML = '';
 
         const currentScale = DOMElements.textSizeSlider ? DOMElements.textSizeSlider.value : 1;
         DOMElements.viewGrid.style.setProperty('--font-scale', currentScale);
 
-        if (editorialPlan.length === 0) {
-            DOMElements.viewGrid.innerHTML = `<p class="col-span-full text-center text-slate-500">Nessun post da visualizzare.</p>`;
+        // Req 4: Filtra i post
+        const filteredPlan = editorialPlan.filter(post => {
+            let channelMatch = false;
+            if (post.Facebook && viewFilters.channels.includes('Facebook')) channelMatch = true;
+            if (post.Linkedin && viewFilters.channels.includes('Linkedin')) channelMatch = true;
+            if (post.X && viewFilters.channels.includes('X')) channelMatch = true;
+            if (post.Instagram && viewFilters.channels.includes('Instagram')) channelMatch = true;
+
+            const hasAnyChannel = post.Facebook || post.Linkedin || post.X || post.Instagram;
+            if (!hasAnyChannel) channelMatch = false; 
+            if (viewFilters.channels.length === 0) channelMatch = false; 
+
+            const isRicondivisione = post.Ricondivisione === true;
+            let typeMatch = false;
+            if (isRicondivisione && viewFilters.types.includes('ricondivisione')) {
+                typeMatch = true;
+            }
+            if (!isRicondivisione && viewFilters.types.includes('post')) {
+                typeMatch = true;
+            }
+
+            return channelMatch && typeMatch;
+        });
+
+        if (filteredPlan.length === 0) {
+            DOMElements.viewGrid.innerHTML = `<p class="col-span-full text-center text-slate-500">Nessun post corrisponde ai filtri selezionati.</p>`;
             return;
         }
 
-        editorialPlan.forEach(post => {
+        filteredPlan.forEach(post => {
             const card = document.createElement('div');
-            card.className = 'bg-white border border-slate-100 rounded-lg shadow-sm p-4 flex flex-col';
+            // Req 5: Stile per Ricondivisione
+            let cardClasses = 'border rounded-lg shadow-sm p-4 flex flex-col';
+            if (post.Ricondivisione) {
+                cardClasses += ' bg-slate-50 border-slate-200 opacity-80';
+            } else {
+                cardClasses += ' bg-white border-slate-100';
+            }
+            card.className = cardClasses;
 
             const socialHtml = `
                 <div class="flex items-center gap-3 mb-3">
@@ -431,23 +529,33 @@
                 </div>
             `;
 
+            // Req 3: Modifica layout Asset
             const infoHtml = `
-                <div class="mb-3 flex items-center justify-between">
+                <div class="mb-4 flex items-start justify-between">
                     <div>
                         <p class="font-mono text-sm font-semibold text-[var(--poste-blue)]">${(post.Orario||'N/D').substring(0,5)}</p>
-                        <p class="text-xs text-slate-500 italic truncate max-w-xs" title="${post.Asset||''}">${post.Asset || 'Nessun asset'}</p>
                     </div>
                     ${post.Ricondivisione ? '<span class="chip">Ricondivisione</span>' : ''}
                 </div>
+                <!-- Sezione Asset Modificata (Req 3) -->
+                <div class="mb-3">
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
+                    <!-- Req 2: Aggiunto leading-snug per ridurre interlinea -->
+                    <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
+                </div>
             `;
 
+            // Req 5: Disabilita bottone copia per Ricondivisione
             const copyHtml = `
                 <div class="mb-3 flex-grow">
                     <h3 class="text-sm font-semibold text-slate-800 mb-1">Testo</h3>
                     <p class="text-sm text-slate-700 card-copy whitespace-pre-wrap">${post.Testo || 'Nessun testo'}</p>
                 </div>
-                <button class="copy-btn btn-flat btn-primary btn-feedback w-full mb-3">
-                    <span class="feedback-text">Copia Testo</span>
+                <button 
+                    class="copy-btn btn-flat ${post.Ricondivisione ? 'btn-neutral' : 'btn-primary'} btn-feedback w-full mb-3" 
+                    ${post.Ricondivisione ? 'disabled' : ''}
+                >
+                    <span class="feedback-text">${post.Ricondivisione ? 'Non copiabile' : 'Copia Testo'}</span>
                     <span class="feedback-message">Copiato!</span>
                 </button>
             `;
@@ -457,8 +565,22 @@
             mentionsHtml += '<h4 class="text-sm font-semibold text-slate-800 mb-2">Menzioni</h4>';
             if (mentions.length > 0) {
                 mentionsHtml += '<div class="flex flex-wrap gap-2">';
+                // Req 5 & 6: Logica per copia menzioni
                 mentions.forEach(mention => {
-                    mentionsHtml += `<button class="copy-mention-btn btn-flat btn-neutral text-xs py-1 px-3 btn-feedback" data-mention="${mention}"><span class="feedback-text">${mention}</span><span class="feedback-message">Copiato!</span></button>`;
+                    let mentionText = mention;
+                    // Req 6: Rimuovi @ per copia IG
+                    if (post.Instagram && mentionText.startsWith('@')) {
+                        mentionText = mentionText.substring(1);
+                    }
+
+                    mentionsHtml += `<button 
+                        class="copy-mention-btn btn-flat btn-neutral text-xs py-1 px-3 btn-feedback" 
+                        data-mention="${mentionText}" 
+                        ${post.Ricondivisione ? 'disabled' : ''} /* Req 5: Disabilita copia */
+                    >
+                        <span class="feedback-text">${mention}</span> <!-- Mostra sempre l'originale -->
+                        <span class="feedback-message">Copiato!</span>
+                    </button>`;
                 });
                 mentionsHtml += '</div>';
             } else {
@@ -470,12 +592,104 @@
             DOMElements.viewGrid.appendChild(card);
 
             // add listeners
-            card.querySelector('.copy-btn').addEventListener('click', (e) => copyToClipboard(post.Testo, e.currentTarget));
+            // Req 6: Testo da copiare dinamico
+            const textToCopy = getCopyText(post);
+            const copyBtn = card.querySelector('.copy-btn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', (e) => copyToClipboard(textToCopy, e.currentTarget));
+            }
+            
             card.querySelectorAll('.copy-mention-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => copyToClipboard(e.currentTarget.dataset.mention, e.currentTarget));
+                btn.addEventListener('click', (e) => {
+                    if (e.currentTarget.disabled) return;
+                    copyToClipboard(e.currentTarget.dataset.mention, e.currentTarget);
+                });
             });
         });
     }
+
+    // NUOVA (Req 4): Funzione per Vetrina
+    function renderShowcaseView() {
+        DOMElements.showcaseGrid.innerHTML = '';
+
+        const currentScale = DOMElements.textSizeSlider ? DOMElements.textSizeSlider.value : 1;
+        DOMElements.showcaseGrid.style.setProperty('--font-scale', currentScale);
+
+        // Vetrina non usa filtri, mostra tutto
+        const planToShow = editorialPlan;
+
+        if (planToShow.length === 0) {
+            DOMElements.showcaseGrid.innerHTML = `<p class="col-span-full text-center text-slate-500">Nessun post da visualizzare.</p>`;
+            return;
+        }
+
+        planToShow.forEach(post => {
+            const card = document.createElement('div');
+            // Stile (come view-view)
+            let cardClasses = 'border rounded-lg shadow-sm p-4 flex flex-col';
+            if (post.Ricondivisione) {
+                cardClasses += ' bg-slate-50 border-slate-200 opacity-80';
+            } else {
+                cardClasses += ' bg-white border-slate-100';
+            }
+            card.className = cardClasses;
+
+            const socialHtml = `
+                <div class="flex items-center gap-3 mb-3">
+                    ${post.Facebook ? svgIcons.facebook : ''}
+                    ${post.Linkedin ? svgIcons.linkedin : ''}
+                    ${post.X ? svgIcons.x : ''}
+                    ${post.Instagram ? svgIcons.instagram : ''}
+                </div>
+            `;
+
+            // Info (con fix line-height - Req 2)
+            const infoHtml = `
+                <div class="mb-4 flex items-start justify-between">
+                    <div>
+                        <p class="font-mono text-sm font-semibold text-[var(--poste-blue)]">${(post.Orario||'N/D').substring(0,5)}</p>
+                    </div>
+                    ${post.Ricondivisione ? '<span class="chip">Ricondivisione</span>' : ''}
+                </div>
+                <div class="mb-3">
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
+                    <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
+                </div>
+            `;
+
+            // Testo (SENZA bottone)
+            const copyHtml = `
+                <div class="mb-3 flex-grow">
+                    <h3 class="text-sm font-semibold text-slate-800 mb-1">Testo</h3>
+                    <p class="text-sm text-slate-700 card-copy whitespace-pre-wrap">${post.Testo || 'Nessun testo'}</p>
+                </div>
+            `;
+
+            // Menzioni (SENZA bottoni, solo span)
+            const mentions = (post.Menzioni || '').split(/[\n,]/).map(m => m.trim()).filter(m => m.length > 0);
+            let mentionsHtml = '<div>';
+            mentionsHtml += '<h4 class="text-sm font-semibold text-slate-800 mb-2">Menzioni</h4>';
+            if (mentions.length > 0) {
+                mentionsHtml += '<div class="flex flex-wrap gap-2">';
+                mentions.forEach(mention => {
+                    // Sostituito button con span
+                    mentionsHtml += `<span class="inline-block text-xs py-1 px-3 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                        ${mention}
+                    </span>`;
+                });
+                mentionsHtml += '</div>';
+            } else {
+                mentionsHtml += '<p class="text-sm text-slate-500">Nessuna menzione</p>';
+            }
+            mentionsHtml += '</div>';
+
+            card.innerHTML = socialHtml + infoHtml + copyHtml + mentionsHtml;
+            DOMElements.showcaseGrid.appendChild(card);
+            
+            // No event listeners needed
+        });
+    }
+
 
     // --- Dati e utility (come prima) ---
     function updatePlanData(event) {
@@ -512,6 +726,7 @@
         editorialPlan.splice(index, 1);
         renderEditView();
         renderViewView();
+        renderShowcaseView(); // Aggiunto
         showToast('Post rimosso', 'success');
     }
 
@@ -531,7 +746,8 @@
         if (savedData) {
             try {
                 editorialPlan = JSON.parse(savedData);
-            } catch (error) {
+            } catch (error)
+            {
                 console.error("Errore parsing:", error);
                 editorialPlan = [...defaultPlan];
             }
@@ -552,6 +768,7 @@
                     editorialPlan = importedData;
                     renderEditView();
                     renderViewView();
+                    renderShowcaseView(); // Aggiunto
                     showToast('Dati JSON importati con successo!', 'success');
                 } else {
                     throw new Error('Il file JSON non è un array valido.');
@@ -610,6 +827,7 @@
                 editorialPlan = normalizedPlan;
                 renderEditView();
                 renderViewView();
+                renderShowcaseView(); // Aggiunto
                 showToast('Dati Excel importati con successo!', 'success');
             } catch (error) {
                 console.error("Errore import Excel:", error);
@@ -648,6 +866,69 @@
     }
 
     // --- UI utilities ---
+    
+    // NUOVA (Req 6): Determina testo da copiare
+    function getCopyText(post) {
+        let mainText = post.Testo || '';
+        
+        // Request 6: Aggiungi menzioni per X
+        if (post.X) {
+            const mentions = (post.Menzioni || '').split(/[\n,]/).map(m => m.trim()).filter(m => m.length > 0);
+            if (mentions.length > 0) {
+                mainText += '\n\n' + mentions.join('\n');
+            }
+        }
+        return mainText;
+    }
+    
+    // NUOVA (Req 4): Gestione filtri
+    function handleFilterChange() {
+        // Update channel filters
+        const checkedChannels = [];
+        DOMElements.channelFilters.querySelectorAll('input:checked').forEach(input => {
+            checkedChannels.push(input.value);
+        });
+        viewFilters.channels = checkedChannels;
+
+        // Update type filters
+        const checkedTypes = [];
+        DOMElements.typeFilters.querySelectorAll('input:checked').forEach(input => {
+            checkedTypes.push(input.value);
+        });
+        viewFilters.types = checkedTypes;
+
+        // Re-render the view
+        renderViewView(); // <-- Aggiunto render mancante
+    } // <-- PARENTESI MANCANTE AGGIUNTA QUI
+
+    // NUOVA (Req 2 e 4): Mostra/nascondi bottoni e controlli
+    function updateControlVisibility(view) {
+        if (view === 'showcase') {
+            // Vetrina: nascondi tutti i controlli
+            DOMElements.controlsSection.classList.add('hidden');
+        
+        } else if (view === 'cards') {
+            // Visualizza: mostra sezione, ma solo bottoni specifici
+            DOMElements.controlsSection.classList.remove('hidden');
+            DOMElements.importJsonBtn && DOMElements.importJsonBtn.classList.add('hidden');
+            DOMElements.exportJsonBtn && DOMElements.exportJsonBtn.classList.add('hidden');
+            DOMElements.exportExcelBtn && DOMElements.exportExcelBtn.classList.add('hidden');
+            // Assicurati che gli altri siano visibili
+            DOMElements.saveLocalBtn && DOMElements.saveLocalBtn.classList.remove('hidden');
+            DOMElements.resetAppBtn && DOMElements.resetAppBtn.classList.remove('hidden');
+            DOMElements.importExcelBtn && DOMElements.importExcelBtn.classList.remove('hidden');
+        } else {
+            // Modifica: mostra sezione e tutti i bottoni
+            DOMElements.controlsSection.classList.remove('hidden');
+            DOMElements.importJsonBtn && DOMElements.importJsonBtn.classList.remove('hidden');
+            DOMElements.exportJsonBtn && DOMElements.exportJsonBtn.classList.remove('hidden');
+            DOMElements.exportExcelBtn && DOMElements.exportExcelBtn.classList.remove('hidden');
+            DOMElements.saveLocalBtn && DOMElements.saveLocalBtn.classList.remove('hidden');
+            DOMElements.resetAppBtn && DOMElements.resetAppBtn.classList.remove('hidden');
+            DOMElements.importExcelBtn && DOMElements.importExcelBtn.classList.remove('hidden');
+        }
+    }
+
     let toastTimer;
     function showToast(message, type='info') {
         clearTimeout(toastTimer);
@@ -713,8 +994,16 @@
         button.disabled = true;
         setTimeout(()=> {
             button.classList.remove(state);
-            button.disabled = false;
-            if (messageEl) messageEl.textContent = '';
+            // Ri-abilita il bottone SOLO SE non è un bottone 
+            // di ricondivisione (Req 5)
+            const isRicondivisioneCopy = button.classList.contains('copy-btn') && 
+                                          button.textContent.includes('Non copiabile');
+            const isRicondivisioneMention = button.classList.contains('copy-mention-btn') &&
+                                             button.disabled; // Se era disabilitato in partenza
+
+            if (!isRicondivisioneCopy && !isRicondivisioneMention) {
+                 button.disabled = false;
+            }
         }, 1500);
     }
 
@@ -756,6 +1045,7 @@
         localStorage.removeItem('socialPlan');
         renderEditView();
         renderViewView();
+        renderShowcaseView(); // Aggiunto
         showToast('Applicazione resettata', 'success');
         return true;
     }
@@ -763,34 +1053,55 @@
     function handleTextSizeChange(e) {
         const scale = e.target.value;
         DOMElements.viewGrid.style.setProperty('--font-scale', scale);
+        DOMElements.showcaseGrid.style.setProperty('--font-scale', scale); // Aggiunto
     }
 
-    // View toggle
+    // View toggle (MODIFICATO per Req 2 e 4)
     function setView(view) {
         currentView = view;
+        updateControlVisibility(view); // Req 2 & 4: Aggiorna pannello controlli
+
+        // Nascondi tutte le viste
+        DOMElements.editView.style.display = 'none';
+        DOMElements.viewView.style.display = 'none';
+        DOMElements.showcaseView.style.display = 'none'; // Aggiunto
+
+        // Resetta tutti i bottoni
+        DOMElements.btnViewEdit && DOMElements.btnViewEdit.classList.remove('btn-primary');
+        DOMElements.btnViewEdit && DOMElements.btnViewEdit.classList.add('btn-neutral');
+        DOMElements.btnViewCards && DOMElements.btnViewCards.classList.remove('btn-primary');
+        DOMElements.btnViewCards && DOMElements.btnViewCards.classList.add('btn-neutral');
+        DOMElements.btnViewShowcase && DOMElements.btnViewShowcase.classList.remove('btn-primary');
+        DOMElements.btnViewShowcase && DOMElements.btnViewShowcase.classList.add('btn-neutral');
+
+
         if (view === 'edit') {
             DOMElements.editView.style.display = 'block';
-            DOMElements.viewView.style.display = 'none';
-            if (DOMElements.btnViewEdit) DOMElements.btnViewEdit.classList.add('btn-neutral');
-            if (DOMElements.btnViewCards) DOMElements.btnViewCards.classList.remove('btn-primary');
+            DOMElements.btnViewEdit && DOMElements.btnViewEdit.classList.add('btn-primary');
+            DOMElements.btnViewEdit && DOMElements.btnViewEdit.classList.remove('btn-neutral');
             renderEditView();
-        } else {
+        } else if (view === 'cards') {
             DOMElements.viewView.style.display = 'block';
-            DOMElements.editView.style.display = 'none';
-            if (DOMElements.btnViewCards) DOMElements.btnViewCards.classList.add('btn-primary');
-            if (DOMElements.btnViewEdit) DOMElements.btnViewEdit.classList.remove('btn-neutral');
+            DOMElements.btnViewCards && DOMElements.btnViewCards.classList.add('btn-primary');
+            DOMElements.btnViewCards && DOMElements.btnViewCards.classList.remove('btn-neutral');
             renderViewView();
+        } else if (view === 'showcase') { // Aggiunto
+            DOMElements.showcaseView.style.display = 'block';
+            DOMElements.btnViewShowcase && DOMElements.btnViewShowcase.classList.add('btn-primary');
+            DOMElements.btnViewShowcase && DOMElements.btnViewShowcase.classList.remove('btn-neutral');
+            renderShowcaseView();
         }
     }
 
-    // --- INIT ---
+    // --- INIT (MODIFICATO per Req 1, 2, 4) ---
     function initApp() {
         loadData();
-        setView(currentView);
+        setView(currentView); // Imposta la vista di default (cards) e i bottoni (Req 1 & 2)
 
         // Buttons
         DOMElements.btnViewEdit && DOMElements.btnViewEdit.addEventListener('click', ()=> setView('edit'));
         DOMElements.btnViewCards && DOMElements.btnViewCards.addEventListener('click', ()=> setView('cards'));
+        DOMElements.btnViewShowcase && DOMElements.btnViewShowcase.addEventListener('click', ()=> setView('showcase')); // Aggiunto
 
         DOMElements.addPostBtn && DOMElements.addPostBtn.addEventListener('click', addNewPost);
 
@@ -802,7 +1113,7 @@
         DOMElements.importJsonBtn && DOMElements.importJsonBtn.addEventListener('click', ()=> DOMElements.importJsonInput.click());
         DOMElements.importJsonInput && DOMElements.importJsonInput.addEventListener('change', handleImportJSON);
 
-        DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click', ()=> DOMElements.importExcelInput.click());
+DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click', ()=> DOMElements.importExcelInput.click());
         DOMElements.importExcelInput && DOMElements.importExcelInput.addEventListener('change', handleImportExcel);
 
         DOMElements.resetAppBtn && DOMElements.resetAppBtn.addEventListener('click', showResetModal);
@@ -812,24 +1123,20 @@
 
         DOMElements.textSizeSlider && DOMElements.textSizeSlider.addEventListener('input', handleTextSizeChange);
 
-        // initial render
-        renderEditView();
-        renderViewView();
+        // Req 4: Filter Listeners
+        DOMElements.channelFilters && DOMElements.channelFilters.addEventListener('change', handleFilterChange);
+        DOMElements.typeFilters && DOMElements.typeFilters.addEventListener('change', handleFilterChange);
 
-        // Resize listener: adapt default view if user resizes widely
-        window.addEventListener('resize', () => {
-            if (window.innerWidth < 1024 && currentView === 'edit') {
-                // prefer cards on small
-                setView('cards');
-            }
-            if (window.innerWidth >= 1024 && currentView === 'cards') {
-                // prefer edit on large
-                setView('edit');
-            }
-        });
+        // initial render (setView già chiama i render giusti)
+        // renderEditView();
+        // renderViewView();
+
+        // Rimosso resize listener automatico (Req 1)
+        // window.addEventListener('resize', () => { ... });
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
+
