@@ -307,6 +307,8 @@
                             <th class="py-3 px-3">Testo</th>
                             <th class="py-3 px-3 w-40">Menzioni</th>
                             <th class="py-3 px-3 w-40">Asset</th>
+                            <!-- NUOVA COLONNA -->
+                            <th class="py-3 px-3 w-40">Immagine (Base64)</th>
                             <th class="py-3 px-3 text-center w-12">FB</th>
                             <th class="py-3 px-3 text-center w-12">LI</th>
                             <th class="py-3 px-3 text-center w-12">X</th>
@@ -429,7 +431,7 @@
 
         if (editorialPlan.length === 0) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="10" class="px-6 py-10 text-center text-slate-500">Nessun post presente. Aggiungine uno nuovo o importa un file.</td>`;
+            tr.innerHTML = `<td colspan="11" class="px-6 py-10 text-center text-slate-500">Nessun post presente. Aggiungine uno nuovo o importa un file.</td>`; // Colspan aggiornato
             DOMElements.editTableBody.appendChild(tr);
             return;
         }
@@ -450,6 +452,10 @@
                 </td>
                 <td class="px-4 py-3 align-top" style="min-width:160px;">
                     <textarea class="text-sm min-h-[90px] rounded-md border border-slate-200 p-2" data-index="${index}" data-field="Asset">${post.Asset || ''}</textarea>
+                </td>
+                <!-- NUOVO CAMPO TEXTAREA -->
+                <td class="px-4 py-3 align-top" style="min-width:160px;">
+                    <textarea class="text-sm min-h-[90px] rounded-md border border-slate-200 p-2" data-index="${index}" data-field="ImmagineB64">${post.ImmagineB64 || ''}</textarea>
                 </td>
                 <td class="px-4 py-3 align-top text-center">
                     <input type="checkbox" class="h-5 w-5 text-[var(--poste-blue)] rounded border-gray-300 focus:ring-[var(--poste-blue)]" ${post.Facebook ? 'checked' : ''} data-index="${index}" data-field="Facebook">
@@ -552,6 +558,17 @@
                     <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
                     <!-- Req 2: Aggiunto leading-snug per ridurre interlinea -->
                     <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
+                    
+                    <!-- NUOVA Sezione Immagine -->
+                    ${
+                        post.ImmagineB64 && post.ImmagineB64.startsWith('data:image') 
+                        ? `
+                        <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
+                            <img src="${post.ImmagineB64}" alt="Immagine asset" class="w-full h-auto object-cover" />
+                        </div>
+                        ` 
+                        : ''
+                    }
                 </div>
             `;
 
@@ -664,6 +681,17 @@
                 <div class="mb-3">
                     <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
                     <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
+                    
+                    <!-- NUOVA Sezione Immagine -->
+                    ${
+                        post.ImmagineB64 && post.ImmagineB64.startsWith('data:image') 
+                        ? `
+                        <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
+                            <img src="${post.ImmagineB64}" alt="Immagine asset" class="w-full h-auto object-cover" />
+                        </div>
+                        ` 
+                        : ''
+                    }
                 </div>
             `;
 
@@ -718,6 +746,7 @@
             Testo: "",
             Menzioni: "",
             Asset: "",
+            ImmagineB64: "", // NUOVO CAMPO
             Facebook: false,
             Linkedin: false,
             X: false,
@@ -828,6 +857,7 @@
                     Testo: row.Testo || "",
                     Menzioni: row.Menzioni || "",
                     Asset: row.Asset || "",
+                    ImmagineB64: row.ImmagineB64 || row["Immagine (Base64)"] || "", // NUOVO CAMPO
                     Facebook: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Facebook).toLowerCase()),
                     Linkedin: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Linkedin).toLowerCase()),
                     X: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.X).toLowerCase()),
@@ -852,6 +882,7 @@
         try {
             const dataToExport = editorialPlan.map(post => ({
                 ...post,
+                ImmagineB64: post.ImmagineB64 || '', // NUOVO CAMPO
                 Facebook: post.Facebook ? '✔' : '',
                 Linkedin: post.Linkedin ? '✔' : '',
                 X: post.X ? '✔' : '',
@@ -860,8 +891,8 @@
             }));
 
             const ws = XLSX.utils.json_to_sheet(dataToExport);
-            ws['!cols'] = [
-                { wch: 10 }, { wch: 60 }, { wch: 30 }, { wch: 30 },
+            ws['!cols'] = [ // Aggiornato per 10 colonne
+                { wch: 10 }, { wch: 60 }, { wch: 30 }, { wch: 30 }, { wch: 40 }, // Aggiunto ImmagineB64
                 { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 8 }
             ];
             const wb = XLSX.utils.book_new();
@@ -1158,6 +1189,7 @@ DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click
     </script>
 </body>
 </html>
+
 
 
 
