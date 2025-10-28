@@ -135,8 +135,11 @@
         #toast-notification.show { transform: translateY(0); opacity: 1; }
 
         /* Card text scale variable */
-        #view-grid { --font-scale: 1; }
-        #view-grid .card-copy { font-size: calc(0.95rem * var(--font-scale)); }
+        /* MODIFICATO: Applicato --font-scale a entrambe le griglie */
+        #view-grid, #showcase-grid { --font-scale: 1; } 
+        /* MODIFICATO: Applicata la regola .card-copy a entrambe le griglie */
+        #view-grid .card-copy,
+        #showcase-grid .card-copy { font-size: calc(0.95rem * var(--font-scale)); }
 
         /* Tiny utility for small labels */
         .chip {
@@ -1155,5 +1158,6 @@ DOMElements.importExcelBtn && DOMElements.importExcelBtn.addEventListener('click
     </script>
 </body>
 </html>
+
 
 
