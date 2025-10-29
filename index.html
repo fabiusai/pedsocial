@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Gestore Piano Editoriale</title>
 
-    <!-- Tailwind (CDN) --><script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- SheetJS --><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root{
@@ -84,15 +84,10 @@
             box-shadow: 0 2px 8px rgba(1,70,188,0.06);
         }
 
-        /* Responsive view rules: MODIFICATO (Req 1) */
-        /* Default: show cards view (visualizza) */
+        /* Responsive view rules */
         #edit-view { display: none; }
-        #showcase-view { display: none; } /* Aggiunto */
+        #showcase-view { display: none; }
         #view-view { display: block; }
-        
-        /* Rimosse regole media query che forzavano la vista 'edit' su desktop.
-         L'utente ora controlla la vista con i bottoni.
-        */
 
         /* Table controls: make scrollable on small screens */
         .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -133,11 +128,14 @@
         #toast-notification.show { transform: translateY(0); opacity: 1; }
 
         /* Card text scale variable */
-        /* MODIFICATO: Applicato --font-scale a entrambe le griglie */
-        #view-grid, #showcase-carousel { --font-scale: 1; } /* Modificato showcase-grid */
-        /* MODIFICATO: Applicata la regola .card-copy a entrambe le griglie */
+        #view-grid, #showcase-carousel { --font-scale: 1; }
+
+        /* 🖋️ MODIFICATO: Tipografia più grande e ariosa (Req Utente) */
         #view-grid .card-copy,
-        #showcase-carousel .card-copy { font-size: calc(0.95rem * var(--font-scale)); } /* Modificato showcase-grid */
+        #showcase-carousel .card-copy {
+            font-size: calc(1.05rem * var(--font-scale)); /* Aumentato da 0.95rem */
+            line-height: 1.625; /* Aggiunto per "spaziatura ariosa" */
+        }
 
         /* Tiny utility for small labels */
         .chip {
@@ -152,123 +150,290 @@
             font-size: .72rem;
         }
 
-        /* NUOVI Stili per Carousel e Timeline Vetrina (MODIFICATO) */
-        /* Contenitore principale della timeline con padding per etichette */
+       /* --- 🎨 TIMELINE VETRINA MIGLIORATA --- */
+
+        /* Contenitore principale */
         #showcase-timeline-container {
             position: relative;
-            /* Aggiungi padding orizzontale per far visualizzare le etichette ai bordi */
-            padding-left: 50px; 
-            padding-right: 50px;
+            padding: 2rem 3.5rem;
+            background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+            border-radius: 12px;
         }
 
-        /* Timeline scorrevole */
+        /* Wrapper scorrevole */
         #showcase-timeline {
+            position: relative;
             overflow-x: auto;
-            overflow-y: visible; /* Aggiunto per non tagliare l'etichetta */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
-            position: relative; /* Per posizionamento frecce */
-        }
-        #showcase-timeline::-webkit-scrollbar {
-            display: none; /* Chrome/Safari */
+            overflow-y: visible;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(1, 70, 188, 0.2) transparent;
+            height: 120px;
+            width: 100%;
+            padding: 1rem 0;
         }
 
-        /* MODIFICATO: Wrapper per punto e etichetta */
+        #showcase-timeline::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        #showcase-timeline::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 3px;
+        }
+
+        #showcase-timeline::-webkit-scrollbar-thumb {
+            background: rgba(1, 70, 188, 0.2);
+            border-radius: 3px;
+        }
+
+        #showcase-timeline::-webkit-scrollbar-thumb:hover {
+            background: rgba(1, 70, 188, 0.3);
+        }
+
+        /* Linea di sfondo GRADIENT */
+        #showcase-timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 1rem;
+            right: 1rem;
+            height: 3px;
+            background: linear-gradient(90deg,
+                var(--poste-yellow) 0%,
+                var(--poste-blue) 50%,
+                var(--poste-yellow) 100%
+            );
+            transform: translateY(-50%);
+            border-radius: 3px;
+            z-index: 1;
+            box-shadow: 0 2px 8px rgba(237, 220, 1, 0.2);
+        }
+
+        /* Contenitore dei Punti */
+        #showcase-timeline-dots-container {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 0;
+            right: 0;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 3rem;
+            padding: 0 1.5rem;
+        }
+
+        /* Wrapper per punto e etichetta */
         #showcase-timeline .timeline-dot-wrapper {
             position: relative;
-            flex-shrink: 0; /* Impedisce ai wrapper di rimpicciolirsi */
+            flex-shrink: 0;
             display: flex;
-            flex-direction: column; /* Cambiato a column */
+            flex-direction: column;
             align-items: center;
-            margin-bottom: 2rem; /* Spazio per l'etichetta sotto */
-            /* Controllo la spaziatura tra i punti per evitare overflow */
-            /* Usa gap per la spaziatura tra i punti */
+            justify-content: center;
+            transition: transform 0.2s ease;
         }
 
-        /* MODIFICATO: Etichetta (nascosta di default) */
-        #showcase-timeline .timeline-label {
-            position: absolute;
-            top: 100%; /* Posizionata sotto il punto */
-            margin-top: 8px; /* Spazio dal punto */
-            padding: 4px 8px;
-            border-radius: 6px;
-            background-color: var(--poste-blue);
-            color: white;
-            font-size: 0.75rem; /* 12px */
-            font-weight: 600;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            white-space: nowrap;
-            opacity: 0; /* Nascosta */
-            transform: translateY(-4px); /* Animazione inversa */
-            transition: all .15s ease;
-            pointer-events: none; /* Non intercettare click */
-            z-index: 10; /* Assicura che l'etichetta sia sopra altri elementi */
+        #showcase-timeline .timeline-dot-wrapper:hover {
+            transform: translateY(-2px);
         }
-        
-        /* MODIFICATO: Punto cliccabile */
+
+        /* Punto cliccabile */
         #showcase-timeline .timeline-dot {
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            background-color: #e2e8f0; /* slate-200 */
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background-color: white;
+            border: 3px solid var(--poste-blue);
+            box-shadow: 0 2px 6px rgba(1, 70, 188, 0.15);
             cursor: pointer;
-            transition: all .15s ease;
-            z-index: 5; /* Sopra la linea */
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 5;
         }
 
         #showcase-timeline .timeline-dot:hover {
-            background-color: #cbd5e1; /* slate-300 */
+            border-width: 4px;
+            box-shadow: 0 4px 12px rgba(1, 70, 188, 0.25);
+            transform: scale(1.15);
         }
 
-        /* MODIFICATO: Stile Attivo */
+        /* Stile Attivo */
         #showcase-timeline .timeline-dot-wrapper.active .timeline-dot {
-            background-color: var(--poste-blue);
-            border-color: white;
-            transform: scale(1.1);
-            box-shadow: 0 0 0 4px rgba(1,70,188,0.2);
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--poste-blue) 0%, #0056d6 100%);
+            border-color: var(--poste-blue);
+            border-width: 4px;
+            box-shadow: 0 0 0 4px rgba(1, 70, 188, 0.1),
+                        0 4px 12px rgba(1, 70, 188, 0.3);
+            animation: pulse-blue 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
         }
-        /* Mostra etichetta solo se attiva */
-        #showcase-timeline .timeline-dot-wrapper.active .timeline-label {
+
+        /* Keyframes per il pulse */
+        @keyframes pulse-blue {
+            0%, 100% {
+                box-shadow: 0 0 0 4px rgba(1, 70, 188, 0.1),
+                            0 4px 12px rgba(1, 70, 188, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(1, 70, 188, 0),
+                            0 6px 16px rgba(1, 70, 188, 0.4);
+            }
+        }
+
+        /* Etichetta FISSA (SOTTO) */
+        #showcase-timeline .timeline-label-fixed {
+            position: absolute;
+            top: calc(100% + 12px);
+            padding: 4px 10px;
+            background: white;
+            border: 1px solid rgba(1, 70, 188, 0.1);
+            border-radius: 6px;
+            color: #64748b;
+            font-size: 0.7rem;
+            font-weight: 600;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            white-space: nowrap;
+            z-index: 10;
+            text-align: center;
+            line-height: 1.3;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Tooltip HOVER (SOPRA) */
+        #showcase-timeline .timeline-tooltip-hover {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            white-space: nowrap;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 20;
+            text-align: center;
+            line-height: 1.3;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Coda della tooltip */
+        #showcase-timeline .timeline-tooltip-hover::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #0f172a transparent transparent transparent;
+        }
+
+        /* Mostra tooltip on hover */
+        #showcase-timeline .timeline-dot-wrapper:hover .timeline-tooltip-hover {
             opacity: 1;
             transform: translateY(0);
         }
 
-        /* Stile per la card del carousel */
-        #showcase-carousel .showcase-card {
-            /* JS aggiungerà la card qui */
-            /* Aggiungo animazione fade-in */
-            animation: fadeIn .3s ease-out;
-            width: 100%; /* Assicura che la card occupi lo spazio */
+        /* Evidenzia etichetta fissa su HOVER */
+        #showcase-timeline .timeline-dot-wrapper:hover .timeline-label-fixed {
+            color: var(--poste-blue);
+            border-color: var(--poste-blue);
+            background: rgba(1, 70, 188, 0.02);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(1, 70, 188, 0.08);
         }
-        
-        /* Controlli Carousel (posizionati sulla timeline) */
-        /* NUOVE REGOLE per i bottoni Prev/Next sulla timeline */
+
+        /* Evidenzia etichetta fissa dell'elemento ATTIVO */
+        #showcase-timeline .timeline-dot-wrapper.active .timeline-label-fixed {
+            color: var(--poste-blue);
+            font-weight: 700;
+            border-color: var(--poste-blue);
+            background: linear-gradient(180deg,
+                rgba(1, 70, 188, 0.04) 0%,
+                rgba(1, 70, 188, 0.08) 100%
+            );
+            box-shadow: 0 4px 12px rgba(1, 70, 188, 0.12);
+        }
+
+        /* Frecce di navigazione */
         #showcase-timeline-container #showcase-prev,
         #showcase-timeline-container #showcase-next {
             position: absolute;
             top: 50%;
-            transform: translateY(calc(-50% + 0.75rem)); /* Allineato alla linea blu */
-            z-index: 20; /* Sopra la timeline e i punti */
-            padding: 0.5rem; /* Rendi più facili da cliccare */
-            background-color: rgba(255,255,255,0.8);
-            backdrop-filter: blur(4px);
-            border-radius: 9999px; /* Completamente tondo */
-            border: 1px solid rgba(0,0,0,0.08);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-50%);
+            background: white;
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(1, 70, 188, 0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+            transition: all 0.2s ease;
+            z-index: 20;
+        }
+
+        #showcase-timeline-container #showcase-prev:hover:not(:disabled),
+        #showcase-timeline-container #showcase-next:hover:not(:disabled) {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.08);
+            box-shadow: 0 6px 20px rgba(1, 70, 188, 0.15);
+            border-color: var(--poste-blue);
+            background: linear-gradient(180deg, white 0%, #f8f9fb 100%);
+        }
+
+        #showcase-timeline-container #showcase-prev:active:not(:disabled),
+        #showcase-timeline-container #showcase-next:active:not(:disabled) {
+            transform: translateY(-50%) scale(1.02);
         }
 
         #showcase-timeline-container #showcase-prev {
-            left: 0;
-            /* Per farlo sporgere un po' fuori dal padding del container */
-            margin-left: -20px; 
+            left: 0.5rem;
         }
 
         #showcase-timeline-container #showcase-next {
-            right: 0;
-            /* Per farlo sporgere un po' fuori dal padding del container */
-            margin-right: -20px;
+            right: 0.5rem;
+        }
+
+        #showcase-timeline-container #showcase-prev:disabled,
+        #showcase-timeline-container #showcase-next:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Animazione ingresso */
+        @keyframes fadeInTimeline {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #showcase-timeline-container {
+            animation: fadeInTimeline 0.4s ease-out;
+        }
+
+        /* --- Fine Stili Timeline --- */
+
+        /* Stile per la card del carousel */
+        #showcase-carousel .showcase-card {
+            animation: fadeIn .3s ease-out;
+            width: 100%;
         }
 
         @keyframes fadeIn {
@@ -280,11 +445,11 @@
 </head>
 <body class="antialiased">
 
-    <!-- Top bar --><div class="w-full bg-white sticky top-0 z-40">
+    <div class="w-full bg-white sticky top-0 z-40">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-md flex items-center justify-center" style="background:var(--poste-yellow);">
-                    <!-- simple logo mark (generic, no names) --><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <rect x="2" y="4" width="20" height="6" rx="1.5" fill="#0146bc" />
                         <rect x="2" y="14" width="12" height="6" rx="1.5" fill="#0146bc" />
                     </svg>
@@ -295,7 +460,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2"> <!-- Modificato: rimosso hidden sm:flex --><!-- Toggle views --><button id="btn-view-edit" class="btn-flat btn-neutral" title="Modalità Modifica">
+            <div class="flex items-center gap-2"> <button id="btn-view-edit" class="btn-flat btn-neutral" title="Modalità Modifica">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M4 21v-3.8l11.1-11.1 3.8 3.8L7.8 21H4z" stroke="#0f172a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <span>Modifica</span>
                 </button>
@@ -303,7 +468,7 @@
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
                     <span>Visualizza</span>
                 </button>
-                <!-- NUOVO BOTTONE VETRINA --><button id="btn-view-showcase" class="btn-flat btn-neutral" title="Modalità Vetrina">
+                <button id="btn-view-showcase" class="btn-flat btn-neutral" title="Modalità Vetrina">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     <span>Vetrina</span>
                 </button>
@@ -314,14 +479,14 @@
 
     <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- Controls top (mobile-friendly stack) --><section class="panel mb-6">
+        <section class="panel mb-6">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Controlli</h2>
                     <p class="text-sm text-slate-500 mt-1">Azioni principali per import, esport e gestione.</p>
                 </div>
 
-                <!-- Controlli Comuni --><div class="flex items-center gap-2">
+                <div class="flex items-center gap-2">
                     <button id="save-local-btn" class="btn-flat btn-primary btn-feedback" data-loading-text="Salvataggio..." data-success-text="Salvato!">
                         <span class="feedback-text">Salva nel Browser</span>
                         <span class="feedback-message">Salvataggio...</span>
@@ -334,7 +499,7 @@
                 </div>
             </div>
 
-            <!-- Controlli condizionali (Req 2) --><div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button id="import-json-btn" class="btn-flat btn-neutral">Importa JSON</button>
                 <input type="file" id="import-json-input" accept=".json" class="hidden">
 
@@ -353,22 +518,22 @@
             </div>
         </section>
 
-        <!-- Visualizzazione - mobile-first (cards) --><section id="view-view" class="mb-6">
+        <section id="view-view" class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h2 class="text-lg font-semibold">Visualizzazione</h2>
                     <p class="text-sm text-slate-500">Anteprima card per smartphone e tablet.</p>
                 </div>
 
-                <!-- Modificato per Req 3 (slider mobile) --><div class="flex items-center gap-2">
-                    <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label> <!-- Shorten text, hide on xs --><div id="text-size-controls" class="w-32 sm:w-48"> <!-- Remove hidden, use responsive width --><input id="text-size-slider" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
+                <div class="flex items-center gap-2">
+                    <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label> <div id="text-size-controls" class="w-32 sm:w-48"> <input id="text-size-slider" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
                     </div>
                 </div>
             </div>
 
-            <!-- Filtri (NUOVO - Req 4) --><div class="panel my-4 p-3">
+            <div class="panel my-4 p-3">
                 <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-                    <!-- Filtro Canali --><div>
+                    <div>
                         <label class="text-sm font-semibold text-slate-700">Canali</label>
                         <div id="channel-filters" class="flex items-center gap-3 mt-1">
                             <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="Facebook" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">FB</span></label>
@@ -377,7 +542,7 @@
                             <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="Instagram" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">IG</span></label>
                         </div>
                     </div>
-                    <!-- Filtro Tipo --><div>
+                    <div>
                         <label class="text-sm font-semibold text-slate-700">Tipo</label>
                         <div id="type-filters" class="flex items-center gap-3 mt-1">
                             <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="post" class="h-4 w-4 rounded text-[var(--poste-blue)] focus:ring-offset-0 focus:ring-1 focus:ring-[var(--poste-blue)]" checked> <span class="text-sm">Post</span></label>
@@ -387,11 +552,11 @@
                 </div>
             </div>
 
-            <div id="view-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Card vengono iniettate da JS --></div>
+            <div id="view-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+                </div>
         </section>
 
-        <!-- Editing - desktop preferred --><section id="edit-view" class="mb-6">
+        <section id="edit-view" class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h2 class="text-lg font-semibold">Modifica</h2>
@@ -399,7 +564,7 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <!-- NUOVO Bottone Ordinamento --><button id="sort-posts-btn" class="btn-flat btn-neutral">
+                    <button id="sort-posts-btn" class="btn-flat btn-neutral">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h9m-9 4h13M19 16l-4-4m0 0l-4 4m4-4v12"></path></svg>
                         <span>Ordina per Data/Ora</span>
                     </button>
@@ -413,7 +578,7 @@
                 <table id="edit-table" class="min-w-full w-full text-sm">
                     <thead>
                         <tr class="text-left text-xs text-slate-600 uppercase tracking-wide">
-                            <!-- NUOVA Colonna Data --><th class="py-3 px-3 w-32">Data</th>
+                            <th class="py-3 px-3 w-32">Data</th>
                             <th class="py-3 px-3 w-24">Orario</th>
                             <th class="py-3 px-3">Testo</th>
                             <th class="py-3 px-3 w-40">Menzioni</th>
@@ -428,51 +593,56 @@
                         </tr>
                     </thead>
                     <tbody id="edit-table-body" class="bg-white">
-                        <!-- Rigenerato da JS --></tbody>
+                        </tbody>
                 </table>
             </div>
         </section>
 
-        <!-- Vetrina (NUOVO - Req 4) - Ridisegnata con Carousel --><section id="showcase-view" class="mb-6">
+        <section id="showcase-view" class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h2 class="text-lg font-semibold">Vetrina</h2>
                     <p class="text-sm text-slate-500">Vista di sola lettura senza controlli.</p>
                 </div>
-                <!-- Cursore dimensione testo per Vetrina --><div class="flex items-center gap-2">
+                <div class="flex items-center gap-2">
                     <label class="text-sm text-slate-600 mr-2 hidden sm:inline">Dim. testo</label>
                     <div id="text-size-controls-showcase" class="w-32 sm:w-48">
                         <input id="text-size-slider-showcase" type="range" min="0.85" max="1.35" step="0.05" value="1" class="w-full">
                     </div>
                 </div>
             </div>
-            
-            <!-- NUOVA Timeline (MODIFICATA) --><div class="panel mb-6 pt-6 pb-12 px-4"> <!-- Rimosso 'overflow-hidden', Aumentato pt a pt-6 e pb a pb-12 --><h3 class="text-sm font-semibold text-slate-700 mb-6 text-center">Timeline</h3>
-                <!-- Wrapper per linea e punti --><div id="showcase-timeline-container" class="relative w-full flex items-center">
-                    <!-- Linea blu di sfondo --><div class="absolute top-1/2 left-0 w-full h-0.5 bg-[var(--poste-blue)] -translate-y-1/2" style="margin-top: 0.75rem;"></div> 
-                    <!-- Contenitore dei punti --><div id="showcase-timeline" class="relative w-full flex items-center justify-between gap-4"> <!-- Cambiato items-start a items-center --><!-- Punti e etichette iniettati da JS --></div>
-                    <!-- Controlli Carousel (ora sulla timeline) --><button id="showcase-prev" class="btn-flat p-2 disabled:opacity-50" title="Precedente">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+
+            <div class="panel relative mb-6 pt-4 pb-4 overflow-visible">
+
+                <div id="showcase-timeline-container" class="relative">
+
+                    <div id="showcase-timeline" class="relative">
+                        <div id="showcase-timeline-line" class="absolute left-0 right-0"></div>
+                        <div id="showcase-timeline-dots-container" class="relative w-full">
+                            </div>
+                    </div>
+
+                    <button id="showcase-prev" class="btn-flat p-2 w-10 h-10 flex items-center justify-center" title="Precedente">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <button id="showcase-next" class="btn-flat p-2 disabled:opacity-50" title="Successivo">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <button id="showcase-next" class="btn-flat p-2 w-10 h-10 flex items-center justify-center" title="Successivo">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
                     </button>
                 </div>
             </div>
-
-            <!-- NUOVO Carousel --><!-- Wrapper per posizionamento bottoni --><div class="relative max-w-2xl mx-auto"> 
+            <div class="relative max-w-2xl mx-auto">
                 <div id="showcase-carousel" class="relative overflow-hidden">
-                    <!-- Card singola iniettata da JS --></div>
+                    </div>
             </div>
             <p id="showcase-counter" class="text-center text-sm text-slate-500 mt-4"></p>
-            
-            <!-- Griglia nascosta (riferimento vecchio) --><div id="showcase-grid" class="hidden">
+
+            <div id="showcase-grid" class="hidden">
             </div>
         </section>
 
     </main>
 
-    <!-- Reset Modal --><div id="reset-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div id="reset-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
         <div class="w-full max-w-lg mx-4 panel">
             <h3 class="text-lg font-semibold text-slate-900">Conferma Reset</h3>
             <p class="text-sm text-slate-600 mt-2">Sei sicuro di voler resettare l'app? Tutti i dati verranno rimossi dal browser.</p>
@@ -487,18 +657,18 @@
         </div>
     </div>
 
-    <!-- Toast --><div id="toast-notification" class="fixed left-1/2 -translate-x-1/2 bottom-8"></div>
+    <div id="toast-notification" class="fixed left-1/2 -translate-x-1/2 bottom-8"></div>
 
-    <!-- SCRIPT (Modificato per le nuove richieste) --><script type="module">
+    <script type="module">
     // --- STATO DELL'APPLICAZIONE ---
     let editorialPlan = [];
     let currentView = 'cards'; // Req 1: 'cards' (visualizza) è il default
     let currentShowcaseIndex = 0; // NUOVO: Stato per carousel
-    
+
     // Req 4: Stato iniziale filtri
-    let viewFilters = { 
-        channels: ['Facebook', 'Linkedin', 'X', 'Instagram'], 
-        types: ['post', 'ricondivisione'] 
+    let viewFilters = {
+        channels: ['Facebook', 'Linkedin', 'X', 'Instagram'],
+        types: ['post', 'ricondivisione']
     };
 
     const defaultPlan = [];
@@ -554,10 +724,10 @@
                     }
                 }
             }
-            
+
             // Prova 3: è un numero seriale di Excel? (gestione base)
             // Questo è complesso, per ora lo saltiamo e ci affidiamo a sheet_to_json
-            
+
         } catch (e) {
             console.error("Errore parsing data:", e);
         }
@@ -565,41 +735,42 @@
         return todayISO;
     }
 
-    // SVG icons (MODIFICATO colore)
+    // SVG icons (MODIFICATO colore e icona FB)
     const svgIcons = {
-        facebook: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>',
+        facebook: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2h-10c-2.761 0-5 2.239-5 5v10c0 2.761 2.239 5 5 5h10c2.762 0 5-2.239 5-5v-10c0-2.761-2.238-5-5-5zm-3 10h-2v-2c0-1.104.896-2 2-2h1v-3h-2c-3.313 0-6 2.687-6 6v2h-2v3h2v7h4v-7h2l1-3z"/></svg>',
         linkedin: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>',
         x: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>',
         instagram: '<svg class="w-5 h-5 text-[var(--poste-blue)]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>'
     };
 
-    // DOM refs (Aggiunti refs per Nuove Feat)
+    // DOM refs (MODIFICATO per Nuova Timeline)
     const DOMElements = {
         controlsSection: document.querySelector('section.panel'),
         editView: document.getElementById('edit-view'),
         viewView: document.getElementById('view-view'),
         btnViewEdit: document.getElementById('btn-view-edit'),
         btnViewCards: document.getElementById('btn-view-cards'),
-        btnViewShowcase: document.getElementById('btn-view-showcase'), 
+        btnViewShowcase: document.getElementById('btn-view-showcase'),
         editTableBody: document.getElementById('edit-table-body'),
         viewGrid: document.getElementById('view-grid'),
         showcaseView: document.getElementById('showcase-view'),
-        showcaseGrid: document.getElementById('showcase-grid'), // Vecchia griglia
-        showcaseCarousel: document.getElementById('showcase-carousel'), // NUOVO
-        showcaseTimelineContainer: document.getElementById('showcase-timeline-container'), // NUOVO
-        showcaseTimeline: document.getElementById('showcase-timeline'), // NUOVO
-        showcasePrev: document.getElementById('showcase-prev'),         // NUOVO
-        showcaseNext: document.getElementById('showcase-next'),         // NUOVO
-        showcaseCounter: document.getElementById('showcase-counter'),   // NUOVO
+        showcaseCarousel: document.getElementById('showcase-carousel'),
+        showcaseTimelineContainer: document.getElementById('showcase-timeline-container'),
+        showcaseTimeline: document.getElementById('showcase-timeline'), // Ora è il wrapper scorrevole
+        showcaseTimelineDotsContainer: document.getElementById('showcase-timeline-dots-container'), // Contenitore punti
+        showcaseTimelineLine: document.getElementById('showcase-timeline-line'), // Linea (gialla)
+        showcasePrev: document.getElementById('showcase-prev'),
+        showcaseNext: document.getElementById('showcase-next'),
+        showcaseCounter: document.getElementById('showcase-counter'),
         addPostBtn: document.getElementById('add-post-btn'),
-        sortPostsBtn: document.getElementById('sort-posts-btn'),     // NUOVO
+        sortPostsBtn: document.getElementById('sort-posts-btn'),
         saveLocalBtn: document.getElementById('save-local-btn'),
-        importJsonBtn: document.getElementById('import-json-btn'), 
+        importJsonBtn: document.getElementById('import-json-btn'),
         importJsonInput: document.getElementById('import-json-input'),
-        exportJsonBtn: document.getElementById('export-json-btn'), 
+        exportJsonBtn: document.getElementById('export-json-btn'),
         importExcelBtn: document.getElementById('import-excel-btn'),
         importExcelInput: document.getElementById('import-excel-input'),
-        exportExcelBtn: document.getElementById('export-excel-btn'), 
+        exportExcelBtn: document.getElementById('export-excel-btn'),
         toast: document.getElementById('toast-notification'),
         resetAppBtn: document.getElementById('reset-app-btn'),
         resetModal: document.getElementById('reset-modal'),
@@ -610,8 +781,8 @@
         textSizeSliderShowcase: document.getElementById('text-size-slider-showcase'),
         importJsonInputEl: document.getElementById('import-json-input'),
         importExcelInputEl: document.getElementById('import-excel-input'),
-        channelFilters: document.getElementById('channel-filters'), 
-        typeFilters: document.getElementById('type-filters'), 
+        channelFilters: document.getElementById('channel-filters'),
+        typeFilters: document.getElementById('type-filters'),
     };
 
     // --- RENDER FUNCTIONS ---
@@ -621,7 +792,7 @@
         if (editorialPlan.length === 0) {
             const tr = document.createElement('tr');
             // Colspan aggiornato a 12
-            tr.innerHTML = `<td colspan="12" class="px-6 py-10 text-center text-slate-500">Nessun post presente. Aggiungine uno nuovo o importa un file.</td>`; 
+            tr.innerHTML = `<td colspan="12" class="px-6 py-10 text-center text-slate-500">Nessun post presente. Aggiungine uno nuovo o importa un file.</td>`;
             DOMElements.editTableBody.appendChild(tr);
             return;
         }
@@ -633,7 +804,7 @@
             tr.className = index % 2 === 0 ? '' : 'bg-slate-50';
 
             tr.innerHTML = `
-                <!-- NUOVO Campo Data --><td class="px-4 py-3 align-top" style="width:140px;">
+                <td class="px-4 py-3 align-top" style="width:140px;">
                     <input type="date" class="text-sm w-full rounded-md border border-slate-200 p-2" value="${post.Data || todayISO}" data-index="${index}" data-field="Data">
                 </td>
                 <td class="px-4 py-3 align-top" style="width:110px;">
@@ -702,7 +873,7 @@
             if (!hasAnyChannel && viewFilters.channels.length > 0) channelMatch = false; // Non mostrare se non ha canali e almeno un filtro è attivo
             if (!hasAnyChannel && viewFilters.channels.length === 0) channelMatch = false; // Non mostrare se non ha canali e nessun filtro è attivo
             if (hasAnyChannel && viewFilters.channels.length === 0) channelMatch = false; // Non mostrare se ha canali ma nessun filtro è selezionato
-            
+
             const isRicondivisione = post.Ricondivisione === true;
             let typeMatch = false;
             if (isRicondivisione && viewFilters.types.includes('ricondivisione')) {
@@ -744,24 +915,24 @@
             const infoHtml = `
                 <div class="mb-4 flex items-start justify-between">
                     <div>
-                        <!-- NUOVA Data e Orario (MODIFICATO per Stile) --><p class="font-mono text-sm">
+                        <p class="font-mono text-sm">
                             <span class="font-semibold text-[var(--poste-blue)]">${formatItalianDate(post.Data)}</span>
                             <span class="text-slate-500"> - ${(post.Orario||'N/D').substring(0,5)}</span>
                         </p>
                     </div>
                     ${post.Ricondivisione ? '<span class="chip">Ricondivisione</span>' : ''}
                 </div>
-                <!-- Sezione Asset Modificata (Req 3) --><div class="mb-3">
+                <div class="mb-3">
                     <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
-                    <!-- Req 2: Aggiunto leading-snug per ridurre interlinea --><p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
-                    
-                    <!-- Sezione Immagine -->${
-                        post.ImmagineB64 && post.ImmagineB64.startsWith('data:image') 
+                    <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
+
+                    ${
+                        post.ImmagineB64 && post.ImmagineB64.startsWith('data:image')
                         ? `
                         <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
                             <img src="${post.ImmagineB64}" alt="Immagine asset" class="w-full h-auto object-cover" />
                         </div>
-                        ` 
+                        `
                         : ''
                     }
                 </div>
@@ -773,8 +944,8 @@
                     <h3 class="text-sm font-semibold text-slate-800 mb-1">Testo</h3>
                     <p class="text-sm text-slate-700 card-copy whitespace-pre-wrap">${post.Testo || 'Nessun testo'}</p>
                 </div>
-                <button 
-                    class="copy-btn btn-flat ${post.Ricondivisione ? 'btn-neutral' : 'btn-primary'} btn-feedback w-full mb-3" 
+                <button
+                    class="copy-btn btn-flat ${post.Ricondivisione ? 'btn-neutral' : 'btn-primary'} btn-feedback w-full mb-3"
                     ${post.Ricondivisione ? 'disabled' : ''}
                 >
                     <span class="feedback-text">${post.Ricondivisione ? 'Non copiabile' : 'Copia Testo'}</span>
@@ -795,12 +966,12 @@
                         mentionText = mentionText.substring(1);
                     }
 
-                    mentionsHtml += `<button 
-                        class="copy-mention-btn btn-flat btn-neutral text-xs py-1 px-3 btn-feedback" 
-                        data-mention="${mentionText}" 
+                    mentionsHtml += `<button
+                        class="copy-mention-btn btn-flat btn-neutral text-xs py-1 px-3 btn-feedback"
+                        data-mention="${mentionText}"
                         ${post.Ricondivisione ? 'disabled' : ''} /* Req 5: Disabilita copia */
                     >
-                        <span class="feedback-text">${mention}</span> <!-- Mostra sempre l'originale --><span class="feedback-message">Copiato!</span>
+                        <span class="feedback-text">${mention}</span> <span class="feedback-message">Copiato!</span>
                     </button>`;
                 });
                 mentionsHtml += '</div>';
@@ -819,7 +990,7 @@
             if (copyBtn) {
                 copyBtn.addEventListener('click', (e) => copyToClipboard(textToCopy, e.currentTarget));
             }
-            
+
             card.querySelectorAll('.copy-mention-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     if (e.currentTarget.disabled) return;
@@ -830,10 +1001,11 @@
     }
 
     // NUOVA: Funzione per Vetrina (Carousel)
+    // 🎨 MODIFICATA per Redesign Timeline
     function renderShowcaseView() {
         DOMElements.showcaseCarousel.innerHTML = '';
-        DOMElements.showcaseTimeline.innerHTML = '';
-        
+        DOMElements.showcaseTimelineDotsContainer.innerHTML = '';
+
         const currentScale = DOMElements.textSizeSliderShowcase ? DOMElements.textSizeSliderShowcase.value : 1;
         DOMElements.showcaseCarousel.style.setProperty('--font-scale', currentScale);
 
@@ -842,6 +1014,7 @@
             DOMElements.showcaseCounter.textContent = '0 di 0';
             DOMElements.showcasePrev.disabled = true;
             DOMElements.showcaseNext.disabled = true;
+            DOMElements.showcaseTimelineDotsContainer.style.justifyContent = 'center';
             return;
         }
 
@@ -876,7 +1049,7 @@
         const infoHtml = `
             <div class="mb-4 flex items-start justify-between">
                 <div>
-                    <!-- NUOVA Data e Orario (MODIFICATO per Stile) --><p class="font-mono text-sm">
+                    <p class="font-mono text-sm">
                         <span class="font-semibold text-[var(--poste-blue)]">${formatItalianDate(post.Data)}</span>
                         <span class="text-slate-500"> - ${(post.Orario||'N/D').substring(0,5)}</span>
                     </p>
@@ -886,14 +1059,14 @@
             <div class="mb-3">
                 <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Asset</p>
                 <p class="text-base italic text-slate-700 whitespace-pre-wrap leading-snug">${post.Asset || 'Nessun asset'}</p>
-                
-                <!-- Sezione Immagine -->${
-                    post.ImmagineB64 && post.ImmagineB64.startsWith('data:image') 
+
+                ${
+                    post.ImmagineB64 && post.ImmagineB64.startsWith('data:image')
                     ? `
                     <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
                         <img src="${post.ImmagineB64}" alt="Immagine asset" class="w-full h-auto object-cover" />
                     </div>
-                    ` 
+                    `
                     : ''
                 }
             </div>
@@ -925,12 +1098,21 @@
         card.innerHTML = socialHtml + infoHtml + copyHtml + mentionsHtml;
         DOMElements.showcaseCarousel.appendChild(card);
 
-        // Render Timeline (MODIFICATO per linea e punti)
-        // Calcola la spaziatura dinamica per evitare overflow o eccessiva compressione
+        // Render Timeline
         const numPosts = editorialPlan.length;
-        // Se ci sono pochi post, li distribuisco uniformemente con gap
-        // Altrimenti, li lascio compattati e scorrevoli
-        DOMElements.showcaseTimeline.style.gap = numPosts <= 7 ? 'auto' : '1.5rem'; // Auto distribuisce, 1.5rem fissa
+        // Se ci sono pochi post (e non riempiono lo schermo), li distribuisce
+        // Altrimenti, li lascia partire da sx (flex-start)
+        const pointWidth = 16; // Larghezza base del punto
+        const gapWidth = 48;   // Gap tra i wrapper (3rem)
+        const paddingWidth = 24 * 2; // Padding container (1.5rem * 2)
+        const totalWidth = numPosts * pointWidth + (numPosts - 1) * gapWidth + paddingWidth;
+
+        if (DOMElements.showcaseTimeline && totalWidth < DOMElements.showcaseTimeline.offsetWidth) {
+             DOMElements.showcaseTimelineDotsContainer.style.justifyContent = 'space-between';
+        } else {
+             DOMElements.showcaseTimelineDotsContainer.style.justifyContent = 'flex-start'; // Usa il gap
+        }
+
 
         editorialPlan.forEach((p, index) => {
             const wrapper = document.createElement('div');
@@ -940,39 +1122,44 @@
             const time = (p.Orario || 'N/D').substring(0,5);
             const date = formatItalianDate(p.Data);
 
-            // Punto cliccabile
+            // 1. Punto cliccabile
             const dot = document.createElement('button');
             dot.className = 'timeline-dot';
-            dot.title = `${date} - ${time}`; // Tooltip
             wrapper.appendChild(dot);
-            
-            // Etichetta (visibile solo se active) - ORA SOTTO
-            const label = document.createElement('span');
-            label.className = 'timeline-label';
-            label.innerHTML = `${date} &middot; ${time}`;
-            wrapper.appendChild(label);
-            
+
+            // 2. Etichetta FISSA (SOTTO)
+            const labelFixed = document.createElement('span');
+            labelFixed.className = 'timeline-label-fixed';
+            labelFixed.innerHTML = `${date}<br>${time}`;
+            wrapper.appendChild(labelFixed);
+
+            // 3. Tooltip HOVER (SOPRA)
+            const tooltipHover = document.createElement('span');
+            tooltipHover.className = 'timeline-tooltip-hover';
+            tooltipHover.innerHTML = `${date}<br>${time}`;
+            wrapper.appendChild(tooltipHover);
+
             wrapper.addEventListener('click', () => setShowcasePost(index));
-            DOMElements.showcaseTimeline.appendChild(wrapper);
+            DOMElements.showcaseTimelineDotsContainer.appendChild(wrapper);
         });
 
         // Aggiorna Controlli
         DOMElements.showcaseCounter.textContent = `Post ${currentShowcaseIndex + 1} di ${editorialPlan.length}`;
         DOMElements.showcasePrev.disabled = (currentShowcaseIndex === 0);
         DOMElements.showcaseNext.disabled = (currentShowcaseIndex === editorialPlan.length - 1);
-        
+
         // Scrolla la timeline per mostrare il punto attivo
-        const activeWrapper = DOMElements.showcaseTimeline.querySelector('.active');
+        const activeWrapper = DOMElements.showcaseTimelineDotsContainer.querySelector('.active');
         if (activeWrapper) {
             // Aggiungo un offset per centrare il punto visivamente
             const offset = (DOMElements.showcaseTimeline.offsetWidth / 2) - (activeWrapper.offsetWidth / 2);
             DOMElements.showcaseTimeline.scroll({
-                left: activeWrapper.offsetLeft - offset, 
-                behavior: 'smooth' 
+                left: activeWrapper.offsetLeft - offset,
+                behavior: 'smooth'
             });
         }
     }
-    
+
     /**
      * NUOVO: Imposta il post corrente nel carousel
      * @param {number} index - Indice del post da mostrare
@@ -1002,7 +1189,7 @@
             Testo: "",
             Menzioni: "",
             Asset: "",
-            ImmagineB64: "", 
+            ImmagineB64: "",
             Facebook: false,
             Linkedin: false,
             X: false,
@@ -1138,15 +1325,15 @@
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 // raw: false tenta di formattare le date
-                const json = XLSX.utils.sheet_to_json(worksheet, { raw: false }); 
-                
+                const json = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
                 const normalizedPlan = json.map(row => ({
                     Data: parseToISODate(row.Data), // NUOVO CAMPO
                     Orario: (row.Orario || "00:00").substring(0,5),
                     Testo: row.Testo || "",
                     Menzioni: row.Menzioni || "",
                     Asset: row.Asset || "",
-                    ImmagineB64: row.ImmagineB64 || row["Immagine (Base64)"] || "", 
+                    ImmagineB64: row.ImmagineB64 || row["Immagine (Base64)"] || "",
                     Facebook: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Facebook).toLowerCase()),
                     Linkedin: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.Linkedin).toLowerCase()),
                     X: ['true', '✔', '1', 'sì', 'si', 'yes', 'y'].includes(String(row.X).toLowerCase()),
@@ -1177,14 +1364,14 @@
                 Testo: post.Testo,
                 Menzioni: post.Menzioni,
                 Asset: post.Asset,
-                ImmagineB64: post.ImmagineB64 || '', 
+                ImmagineB64: post.ImmagineB64 || '',
                 Facebook: post.Facebook ? '✔' : '',
                 Linkedin: post.Linkedin ? '✔' : '',
                 X: post.X ? '✔' : '',
                 Instagram: post.Instagram ? '✔' : '',
                 Ricondivisione: post.Ricondivisione ? '✔' : '',
             }));
-            
+
             // Crea un nuovo array per l'ordine delle colonne
             const orderedData = dataToExport.map(post => ({
                 'Data': post.Data,
@@ -1201,11 +1388,6 @@
             }));
 
             const ws = XLSX.utils.json_to_sheet(orderedData);
-            // ws['!cols'] = [ // Aggiornato per 11 colonne
-            //     { wch: 10 }, { wch: 10 }, { wch: 60 }, { wch: 30 }, { wch: 30 }, { wch: 40 }, 
-            //     { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 5 }, { wch: 8 }
-            // ];
-            // Lasciamo che XLSX gestisca le larghezze automatiche per semplicità
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Piano Editoriale');
             XLSX.writeFile(wb, 'piano_editoriale.xlsx');
@@ -1218,11 +1400,11 @@
     }
 
     // --- UI utilities ---
-    
+
     // (Req 6): Determina testo da copiare
     function getCopyText(post) {
         let mainText = post.Testo || '';
-        
+
         if (post.X) {
             const mentions = (post.Menzioni || '').split(/[\n,]/).map(m => m.trim()).filter(m => m.length > 0);
             if (mentions.length > 0) {
@@ -1231,7 +1413,7 @@
         }
         return mainText;
     }
-    
+
     // (Req 4): Gestione filtri
     function handleFilterChange() {
         // Update channel filters
@@ -1257,7 +1439,7 @@
         if (view === 'showcase') {
             // Vetrina: nascondi tutti i controlli
             DOMElements.controlsSection.classList.add('hidden');
-        
+
         } else if (view === 'cards') {
             // Visualizza: mostra sezione, ma solo bottoni specifici
             DOMElements.controlsSection.classList.remove('hidden');
@@ -1345,11 +1527,11 @@
         button.disabled = true;
         setTimeout(()=> {
             button.classList.remove(state);
-            // Ri-abilita il bottone SOLO SE non è un bottone 
+            // Ri-abilita il bottone SOLO SE non è un bottone
             // di ricondivisione (Req 5)
-            const isRicondivisioneCopy = button.classList.contains('copy-btn') && 
+            const isRicondivisioneCopy = button.classList.contains('copy-btn') &&
                                           button.querySelector('.feedback-text').textContent.includes('Non copiabile');
-            
+
             // Verifica se il bottone delle menzioni appartiene a una card disabilitata
             const parentCard = button.closest('.opacity-80');
             const isRicondivisioneMention = button.classList.contains('copy-mention-btn') && parentCard;
@@ -1494,13 +1676,13 @@
         // Req 4: Filter Listeners
         DOMElements.channelFilters && DOMElements.channelFilters.addEventListener('change', handleFilterChange);
         DOMElements.typeFilters && DOMElements.typeFilters.addEventListener('change', handleFilterChange);
-        
+
         // NUOVO: Carousel Listeners
-        DOMElements.showcasePrev.addEventListener('click', () => { 
-            if (currentShowcaseIndex > 0) setShowcasePost(currentShowcaseIndex - 1); 
+        DOMElements.showcasePrev.addEventListener('click', () => {
+            if (currentShowcaseIndex > 0) setShowcasePost(currentShowcaseIndex - 1);
         });
-        DOMElements.showcaseNext.addEventListener('click', () => { 
-            if (currentShowcaseIndex < editorialPlan.length - 1) setShowcasePost(currentShowcaseIndex + 1); 
+        DOMElements.showcaseNext.addEventListener('click', () => {
+            if (currentShowcaseIndex < editorialPlan.length - 1) setShowcasePost(currentShowcaseIndex + 1);
         });
 
 
@@ -1515,4 +1697,3 @@
     </script>
 </body>
 </html>
-
