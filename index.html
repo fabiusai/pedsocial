@@ -5,7 +5,7 @@
     
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Gestore Piano Editoriale 2.0</title>
+    <title>Gestore Piano Editoriale 3.0</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -34,6 +34,7 @@
             align-items: center;
             gap: 0.5rem;
             transition: all .15s ease;
+            white-space: nowrap;
         }
         .btn-flat:active { transform: translateY(1px); }
         .btn-flat:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -91,7 +92,7 @@
             line-height: 1.625;
         }
 
-        /* Placeholder Vetrina (New) */
+        /* Placeholder Vetrina */
         .asset-placeholder {
             background-color: #f1f5f9;
             background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
@@ -107,7 +108,7 @@
             color: #64748b;
         }
 
-        /* Timeline Styles (Preserved) */
+        /* Timeline Styles */
         #showcase-timeline-container {
             position: relative;
             padding: 2rem 3.5rem;
@@ -206,21 +207,38 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <section class="panel mb-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex gap-2">
-                     <button id="save-local-btn" class="btn-flat btn-primary text-sm">Salva</button>
-                     <button id="reset-app-btn" class="btn-flat btn-neutral text-sm text-red-600 border-red-100 hover:bg-red-50">Reset</button>
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                
+                <div class="flex-grow w-full lg:w-auto">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Titolo del Piano (per Export)</label>
+                    <input type="text" id="plan-title-input" placeholder="Es. Piano Editoriale Gennaio 2025" class="w-full text-sm border-slate-300 rounded-md focus:border-[var(--poste-blue)] focus:ring-[var(--poste-blue)]">
                 </div>
-                <div class="flex gap-2 text-sm">
-                    <button id="import-json-btn" class="btn-flat btn-neutral">Import JSON</button>
-                    <input type="file" id="import-json-input" accept=".json" class="hidden">
-                    <button id="export-json-btn" class="btn-flat btn-neutral">Export JSON</button>
-                    
-                    <div class="w-px h-8 bg-slate-200 mx-1"></div>
 
-                    <button id="import-excel-btn" class="btn-flat btn-neutral">Import Excel</button>
-                    <input type="file" id="import-excel-input" accept=".xlsx, .xls, .csv" class="hidden">
-                    <button id="export-excel-btn" class="btn-flat btn-accent">Export Excel</button>
+                <div class="flex flex-wrap items-center gap-2 pt-5 lg:pt-0">
+                     <button id="save-local-btn" class="btn-flat btn-primary text-sm">Salva Browser</button>
+                     
+                     <div class="w-px h-8 bg-slate-200 mx-1"></div>
+
+                     <button id="export-html-btn" class="btn-flat btn-accent text-sm border border-yellow-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        Export Vetrina (.html)
+                     </button>
+
+                     <div class="w-px h-8 bg-slate-200 mx-1"></div>
+
+                     <div class="flex gap-1">
+                        <button id="import-excel-btn" class="btn-flat btn-neutral text-xs" title="Importa Excel">Import XLS</button>
+                        <input type="file" id="import-excel-input" accept=".xlsx, .xls, .csv" class="hidden">
+                        <button id="export-excel-btn" class="btn-flat btn-neutral text-xs" title="Esporta Excel">Export XLS</button>
+                     </div>
+                     
+                     <div class="flex gap-1">
+                        <button id="import-json-btn" class="btn-flat btn-neutral text-xs" title="Importa JSON">Imp JSON</button>
+                        <input type="file" id="import-json-input" accept=".json" class="hidden">
+                        <button id="export-json-btn" class="btn-flat btn-neutral text-xs" title="Esporta JSON">Exp JSON</button>
+                     </div>
+
+                     <button id="reset-app-btn" class="btn-flat btn-neutral text-xs text-red-600 border-red-100 hover:bg-red-50 ml-2">Reset</button>
                 </div>
             </div>
         </section>
@@ -342,8 +360,9 @@
     let editorialPlan = [];
     let currentView = 'cards';
     let currentShowcaseIndex = 0;
-    let tempImageTargetIndex = null; // For image uploader
+    let tempImageTargetIndex = null;
     let viewFilters = { channels: ['Facebook', 'Linkedin', 'X', 'Instagram'] };
+    let planTitle = "Piano Editoriale";
 
     // --- DOM Elements ---
     const $ = (id) => document.getElementById(id);
@@ -366,6 +385,8 @@
             reset: $('reset-app-btn'),
             importJson: $('import-json-btn'), exportJson: $('export-json-btn'),
             importExcel: $('import-excel-btn'), exportExcel: $('export-excel-btn'),
+            exportHtml: $('export-html-btn'), // NEW
+            titleInput: $('plan-title-input'), // NEW
             helperImg: $('helper-img-upload'),
             sliders: [$('text-size-slider'), $('text-size-slider-showcase')],
             filters: $('channel-filters')
@@ -390,11 +411,9 @@
 
     function setView(viewName) {
         currentView = viewName;
-        // Toggle Sections
         Object.values(els.views).forEach(el => el.style.display = 'none');
         els.views[viewName].style.display = 'block';
 
-        // Toggle Buttons styling
         const updateBtn = (btn, active) => {
             btn.className = active ? 'btn-flat btn-primary' : 'btn-flat btn-neutral';
         };
@@ -407,7 +426,7 @@
         if(viewName === 'showcase') renderShowcase();
     }
 
-    // --- RENDER EDITOR (Con Bottoni Canali Migliorati) ---
+    // --- RENDER EDITOR ---
     function renderEdit() {
         const tbody = els.editTable;
         tbody.innerHTML = '';
@@ -440,11 +459,11 @@
                 </div>
             `;
 
-            // Col 3: Image (Base64) + Upload Button
+            // Col 3: Image (Base64)
             const colImg = `
                 <div class="flex flex-col gap-1">
                     <div class="flex gap-1">
-                        <textarea placeholder="Incolla Base64 o usa tasto..." id="b64-${i}" onchange="updateData(${i}, 'ImmagineB64', this.value)" class="w-full h-24 text-[10px] font-mono border-slate-200 rounded-md p-2 text-slate-500 leading-tight">${post.ImmagineB64 || ''}</textarea>
+                        <textarea placeholder="Base64..." id="b64-${i}" onchange="updateData(${i}, 'ImmagineB64', this.value)" class="w-full h-24 text-[10px] font-mono border-slate-200 rounded-md p-2 text-slate-500 leading-tight">${post.ImmagineB64 || ''}</textarea>
                     </div>
                     <button onclick="triggerUpload(${i})" class="btn-flat btn-neutral text-xs py-1 px-2 w-full justify-center">
                         ${icons.upload} Carica Img
@@ -453,7 +472,7 @@
                 </div>
             `;
 
-            // Col 4: Channels (Icon Buttons)
+            // Col 4: Channels
             const btnClass = (active) => `btn-icon-toggle ${active ? 'active' : ''}`;
             const colChannels = `
                 <div class="flex items-center justify-center gap-2">
@@ -492,11 +511,9 @@
         const scale = els.controls.sliders[0].value;
         grid.style.setProperty('--font-scale', scale);
 
-        // Filter logic
         const visiblePosts = editorialPlan.filter(post => {
             if (viewFilters.channels.length === 0) return false;
-            const hasChannel = viewFilters.channels.some(ch => post[ch]);
-            return hasChannel; // Simplified logic
+            return viewFilters.channels.some(ch => post[ch]);
         });
 
         if (visiblePosts.length === 0) {
@@ -509,16 +526,12 @@
             const card = document.createElement('div');
             card.className = `panel flex flex-col h-full ${isShare ? 'bg-slate-50 border-dashed' : 'bg-white'}`;
             
-            // Header: Date & Icons
             const activeIcons = ['Facebook','Linkedin','X','Instagram'].map(ch => 
                 post[ch] ? `<span class="text-[var(--poste-blue)]">${icons[ch === 'Facebook' ? 'fb' : ch === 'Linkedin' ? 'li' : ch === 'X' ? 'x' : 'ig']}</span>` : ''
             ).join('');
 
-            // Body
             const hasImg = post.ImmagineB64 && post.ImmagineB64.length > 50;
-            const imgHtml = hasImg 
-                ? `<img src="${post.ImmagineB64}" class="w-full h-40 object-cover rounded-md border border-slate-100 mb-3">` 
-                : '';
+            const imgHtml = hasImg ? `<img src="${post.ImmagineB64}" class="w-full h-40 object-cover rounded-md border border-slate-100 mb-3">` : '';
 
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3 pb-3 border-b border-slate-100">
@@ -528,15 +541,12 @@
                     </div>
                     <div class="flex gap-2">${activeIcons}</div>
                 </div>
-                
                 ${imgHtml}
-                
                 <div class="flex-grow mb-4">
                     ${post.Asset ? `<p class="text-xs font-semibold text-slate-400 uppercase mb-1">Asset</p><p class="text-sm italic text-slate-600 mb-3">${post.Asset}</p>` : ''}
                     <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Copy</p>
                     <p class="text-slate-800 card-copy whitespace-pre-wrap">${post.Testo || '-'}</p>
                 </div>
-
                 <button class="btn-flat ${isShare ? 'btn-neutral' : 'btn-primary'} w-full justify-center text-sm" ${isShare ? 'disabled' : ''} onclick="copyText(this, \`${(post.Testo || '').replace(/`/g, '\\`')}\`)">
                     ${isShare ? 'Ricondivisione (No Copy)' : 'Copia Testo'}
                 </button>
@@ -545,12 +555,11 @@
         });
     }
 
-    // --- RENDER SHOWCASE (Vetrina) - Con Placeholder ---
+    // --- RENDER SHOWCASE ---
     function renderShowcase() {
         const container = els.grids.showcase;
         container.innerHTML = '';
         els.timeline.container.innerHTML = '';
-        
         const scale = els.controls.sliders[1].value;
         container.style.setProperty('--font-scale', scale);
 
@@ -559,32 +568,26 @@
             return;
         }
 
-        // Validate Index
         if (currentShowcaseIndex >= editorialPlan.length) currentShowcaseIndex = editorialPlan.length - 1;
         if (currentShowcaseIndex < 0) currentShowcaseIndex = 0;
 
         const post = editorialPlan[currentShowcaseIndex];
 
-        // 1. Timeline Dots
+        // Timeline
         editorialPlan.forEach((p, idx) => {
             const isActive = idx === currentShowcaseIndex;
             const dot = document.createElement('div');
             dot.className = `timeline-dot-wrapper ${isActive ? 'active' : ''}`;
-            dot.innerHTML = `
-                <div class="timeline-dot"></div>
-                <div class="timeline-label-fixed">${formatDate(p.Data)}<br>${p.Orario}</div>
-            `;
+            dot.innerHTML = `<div class="timeline-dot"></div><div class="timeline-label-fixed">${formatDate(p.Data)}<br>${p.Orario}</div>`;
             dot.onclick = () => { currentShowcaseIndex = idx; renderShowcase(); };
             els.timeline.container.appendChild(dot);
         });
 
-        // 2. Main Card content
-        // LOGICA PLACEHOLDER (Richiesta 2)
+        // Placeholder Logic
         let mediaContent;
         if (post.ImmagineB64 && post.ImmagineB64.length > 50) {
             mediaContent = `<img src="${post.ImmagineB64}" class="w-full h-auto max-h-[500px] object-contain rounded-lg border border-slate-100 shadow-sm">`;
         } else {
-            // Placeholder se manca immagine
             mediaContent = `
                 <div class="asset-placeholder">
                     <div>
@@ -610,14 +613,11 @@
                         <div class="text-slate-500">${post.Orario}</div>
                     </div>
                 </div>
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>${mediaContent}</div>
-
                     <div class="flex flex-col justify-center">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Copy Post</h3>
                         <div class="prose prose-slate text-slate-700 card-copy whitespace-pre-wrap">${post.Testo || 'Nessun testo inserito...'}</div>
-                        
                         ${post.Ricondivisione ? '<div class="mt-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">🔄 Post di ricondivisione</div>' : ''}
                     </div>
                 </div>
@@ -625,14 +625,12 @@
         `;
         container.appendChild(card);
 
-        // Update Counters & Arrows
         els.timeline.counter.textContent = `${currentShowcaseIndex + 1} / ${editorialPlan.length}`;
         els.timeline.prev.disabled = currentShowcaseIndex === 0;
         els.timeline.prev.style.opacity = currentShowcaseIndex === 0 ? '0.5' : '1';
         els.timeline.next.disabled = currentShowcaseIndex === editorialPlan.length - 1;
         els.timeline.next.style.opacity = currentShowcaseIndex === editorialPlan.length - 1 ? '0.5' : '1';
 
-        // Auto-scroll timeline to active dot
         const activeDot = els.timeline.container.querySelector('.active');
         if(activeDot) {
             const offset = (els.timeline.wrapper.offsetWidth / 2) - (activeDot.offsetWidth / 2);
@@ -641,188 +639,213 @@
     }
 
     // --- DATA HANDLING ---
-    window.updateData = (index, field, value) => {
-        if(editorialPlan[index]) {
-            editorialPlan[index][field] = value;
-            // Debounce save? No, simple app, saving mainly manual or on view switch
-        }
-    };
-
-    window.toggleChannel = (index, channel) => {
-        if(editorialPlan[index]) {
-            editorialPlan[index][channel] = !editorialPlan[index][channel];
-            renderEdit(); // Re-render to update icon state
-        }
-    };
-
-    window.deletePost = (index) => {
-        if(confirm('Eliminare questo post?')) {
-            editorialPlan.splice(index, 1);
-            renderEdit();
-            showToast('Post eliminato');
-        }
-    };
-
-    window.copyText = (btn, text) => {
-        if(!text) return;
-        navigator.clipboard.writeText(text).then(() => {
-            const orig = btn.innerText;
-            btn.innerText = "Copiato!";
-            btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
-            setTimeout(() => {
-                btn.innerText = orig;
-                btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
-            }, 1500);
-        });
-    };
-
-    // --- Image Upload Logic ---
-    window.triggerUpload = (index) => {
-        tempImageTargetIndex = index;
-        els.controls.helperImg.click();
-    };
-
+    window.updateData = (index, field, value) => { if(editorialPlan[index]) editorialPlan[index][field] = value; };
+    window.toggleChannel = (index, channel) => { if(editorialPlan[index]) { editorialPlan[index][channel] = !editorialPlan[index][channel]; renderEdit(); } };
+    window.deletePost = (index) => { if(confirm('Eliminare questo post?')) { editorialPlan.splice(index, 1); renderEdit(); showToast('Post eliminato'); } };
+    window.copyText = (btn, text) => { if(!text) return; navigator.clipboard.writeText(text).then(() => { const orig = btn.innerText; btn.innerText = "Copiato!"; btn.classList.add('bg-green-600', 'text-white', 'border-green-600'); setTimeout(() => { btn.innerText = orig; btn.classList.remove('bg-green-600', 'text-white', 'border-green-600'); }, 1500); }); };
+    
+    // Image Upload
+    window.triggerUpload = (index) => { tempImageTargetIndex = index; els.controls.helperImg.click(); };
     els.controls.helperImg.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if(!file || tempImageTargetIndex === null) return;
-        
-        // Check size (max 1MB for sanity)
-        if(file.size > 1000000) {
-            alert("File troppo grande! Usa immagini < 1MB per non rallentare il browser.");
-            return;
-        }
-
+        if(file.size > 1000000) { alert("File troppo grande!"); return; }
         const reader = new FileReader();
-        reader.onload = (evt) => {
-            editorialPlan[tempImageTargetIndex].ImmagineB64 = evt.target.result;
-            renderEdit(); // Refresh view
-            showToast('Immagine caricata!');
-            tempImageTargetIndex = null;
-        };
+        reader.onload = (evt) => { editorialPlan[tempImageTargetIndex].ImmagineB64 = evt.target.result; renderEdit(); showToast('Immagine caricata!'); tempImageTargetIndex = null; };
         reader.readAsDataURL(file);
-        e.target.value = null; // reset
+        e.target.value = null;
     });
 
-    // --- Actions ---
+    // --- BUTTON ACTIONS ---
     els.controls.add.onclick = () => {
         const today = new Date().toISOString().split('T')[0];
-        editorialPlan.unshift({ // Add to top
-            Data: today, Orario: '09:00', Testo: '', Asset: '', ImmagineB64: '',
-            Facebook: false, Linkedin: true, X: false, Instagram: false, Ricondivisione: false
-        });
+        editorialPlan.unshift({ Data: today, Orario: '09:00', Testo: '', Asset: '', ImmagineB64: '', Facebook: false, Linkedin: true, X: false, Instagram: false, Ricondivisione: false });
         renderEdit();
         showToast('Nuovo post aggiunto');
     };
-
-    els.controls.sort.onclick = () => {
-        editorialPlan.sort((a,b) => (a.Data + a.Orario).localeCompare(b.Data + b.Orario));
-        renderEdit();
-        showToast('Ordinato per data');
+    els.controls.sort.onclick = () => { editorialPlan.sort((a,b) => (a.Data + a.Orario).localeCompare(b.Data + b.Orario)); renderEdit(); showToast('Ordinato per data'); };
+    els.controls.save.onclick = () => { 
+        localStorage.setItem('socialPlan2', JSON.stringify(editorialPlan)); 
+        localStorage.setItem('socialPlanTitle', els.controls.titleInput.value);
+        showToast('Salvato nel browser!', 'success'); 
     };
-
-    els.controls.save.onclick = () => {
-        localStorage.setItem('socialPlan2', JSON.stringify(editorialPlan));
-        showToast('Salvato nel browser!', 'success');
-    };
-
     els.controls.reset.onclick = () => els.modal.el.classList.remove('hidden');
     els.modal.cancel.onclick = () => els.modal.el.classList.add('hidden');
-    els.modal.confirm.onclick = () => {
-        editorialPlan = [];
-        localStorage.removeItem('socialPlan2');
-        renderEdit();
-        els.modal.el.classList.add('hidden');
-        showToast('App resettata');
-    };
+    els.modal.confirm.onclick = () => { editorialPlan = []; localStorage.removeItem('socialPlan2'); localStorage.removeItem('socialPlanTitle'); renderEdit(); els.modal.el.classList.add('hidden'); showToast('App resettata'); };
 
-    // --- JSON/Excel Import/Export (Standard implementation) ---
-    // (Mantengo logica simile al file originale ma semplificata per brevità)
-    els.controls.exportJson.onclick = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(editorialPlan));
-        const dlAnchorElem = document.createElement('a');
-        dlAnchorElem.setAttribute("href", dataStr);
-        dlAnchorElem.setAttribute("download", "piano_editoriale.json");
-        dlAnchorElem.click();
-    };
-
+    // JSON/Excel
+    els.controls.exportJson.onclick = () => { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(editorialPlan)); const a = document.createElement('a'); a.href = dataStr; a.download = "piano.json"; a.click(); };
     els.controls.importJson.onclick = () => els.inputs.json.click();
-    els.inputs.json.onchange = (e) => {
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            editorialPlan = JSON.parse(evt.target.result);
-            renderEdit();
-            showToast('JSON Importato');
-        };
-        reader.readAsText(e.target.files[0]);
-    };
-    
-    // Excel (Simple logic using SheetJS)
-    els.controls.exportExcel.onclick = () => {
-        const ws = XLSX.utils.json_to_sheet(editorialPlan);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Piano");
-        XLSX.writeFile(wb, "piano.xlsx");
-    };
+    els.inputs.json.onchange = (e) => { const reader = new FileReader(); reader.onload = (evt) => { editorialPlan = JSON.parse(evt.target.result); renderEdit(); showToast('JSON Importato'); }; reader.readAsText(e.target.files[0]); };
+    els.controls.exportExcel.onclick = () => { const ws = XLSX.utils.json_to_sheet(editorialPlan); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Piano"); XLSX.writeFile(wb, "piano.xlsx"); };
     els.controls.importExcel.onclick = () => els.inputs.excel.click();
-    els.inputs.excel.onchange = (e) => {
-         const reader = new FileReader();
-         reader.onload = (evt) => {
-             const wb = XLSX.read(evt.target.result, {type:'binary'});
-             const ws = wb.Sheets[wb.SheetNames[0]];
-             const json = XLSX.utils.sheet_to_json(ws);
-             // Basic normalization
-             editorialPlan = json.map(r => ({
-                 Data: r.Data || '', Orario: r.Orario || '', Testo: r.Testo || '', Asset: r.Asset || '',
-                 Facebook: !!r.Facebook, Linkedin: !!r.Linkedin, X: !!r.X, Instagram: !!r.Instagram
-             }));
-             renderEdit();
-             showToast('Excel Importato');
-         };
-         reader.readAsBinaryString(e.target.files[0]);
+    els.inputs.excel.onchange = (e) => { const reader = new FileReader(); reader.onload = (evt) => { const wb = XLSX.read(evt.target.result, {type:'binary'}); const ws = wb.Sheets[wb.SheetNames[0]]; editorialPlan = XLSX.utils.sheet_to_json(ws).map(r => ({...r, Facebook: !!r.Facebook, Linkedin: !!r.Linkedin, X: !!r.X, Instagram: !!r.Instagram})); renderEdit(); showToast('Excel Importato'); }; reader.readAsBinaryString(e.target.files[0]); };
+
+    // --- NUOVO: EXPORT HTML (Vetrina Standalone) ---
+    els.controls.exportHtml.onclick = () => {
+        const title = els.controls.titleInput.value || "Piano Editoriale";
+        
+        // Costruzione del file HTML Pulito
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${title}</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>
+        :root{ --poste-yellow: #eddc01; --poste-blue: #0146bc; }
+        body { font-family: system-ui, sans-serif; background: #fbfbfb; color: #0f172a; }
+        /* Copia stili essenziali timeline */
+        #showcase-timeline-container { position: relative; padding: 2rem 3.5rem; background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 2rem; }
+        #showcase-timeline { overflow-x: auto; scrollbar-width: thin; height: 120px; width: 100%; padding: 1rem 0; position: relative; }
+        #showcase-timeline-line { position: absolute; top: 50%; left: 1rem; right: 1rem; height: 3px; background: linear-gradient(90deg, var(--poste-yellow), var(--poste-blue)); transform: translateY(-50%); z-index: 1; }
+        #showcase-timeline-dots-container { position: absolute; top: 50%; transform: translateY(-50%); display: flex; gap: 3rem; padding: 0 1.5rem; }
+        .timeline-dot-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform .2s; }
+        .timeline-dot-wrapper:hover { transform: translateY(-2px); }
+        .timeline-dot { width: 16px; height: 16px; border-radius: 50%; background: white; border: 3px solid var(--poste-blue); z-index: 5; }
+        .timeline-dot-wrapper.active .timeline-dot { width: 20px; height: 20px; background: var(--poste-blue); border-width: 4px; box-shadow: 0 0 0 4px rgba(1,70,188,0.1); }
+        .timeline-label-fixed { position: absolute; top: 100%; margin-top: 10px; font-size: 0.7rem; font-weight: 600; background: white; padding: 2px 6px; border: 1px solid #e2e8f0; border-radius: 4px; white-space: nowrap; color: #64748b; }
+        .timeline-dot-wrapper.active .timeline-label-fixed { color: var(--poste-blue); border-color: var(--poste-blue); }
+        .showcase-card { animation: fadeIn .3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+        .asset-placeholder { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; height: 250px; display: flex; align-items: center; justify-content: center; color: #64748b; text-align: center; }
+    </style>
+</head>
+<body class="py-10 px-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-10">
+             <h1 class="text-3xl font-bold text-slate-900">${title}</h1>
+             <p class="text-slate-500 mt-2">Vetrina interattiva del piano editoriale</p>
+        </header>
+
+        <div id="showcase-timeline-container">
+            <div id="showcase-timeline">
+                <div id="showcase-timeline-line"></div>
+                <div id="showcase-timeline-dots-container"></div>
+            </div>
+            <button id="prev" class="absolute top-1/2 left-2 -translate-y-1/2 bg-white shadow border rounded-full p-2">←</button>
+            <button id="next" class="absolute top-1/2 right-2 -translate-y-1/2 bg-white shadow border rounded-full p-2">→</button>
+        </div>
+
+        <div id="showcase-carousel" class="relative min-h-[400px]"></div>
+        <p id="counter" class="text-center text-sm text-slate-400 mt-4 font-mono"></p>
+    </div>
+
+    <script>
+        const plan = ${JSON.stringify(editorialPlan)};
+        let idx = 0;
+        const icons = {
+            fb: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.142v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>',
+            li: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>',
+            x: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+            ig: '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>'
+        };
+
+        function formatDate(iso) { try { const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y.slice(2); } catch { return iso; } }
+
+        function render() {
+            const container = document.getElementById('showcase-carousel');
+            const dotsContainer = document.getElementById('showcase-timeline-dots-container');
+            const post = plan[idx];
+            
+            // Render Dots
+            dotsContainer.innerHTML = '';
+            plan.forEach((p, i) => {
+                const active = i === idx ? 'active' : '';
+                dotsContainer.innerHTML += \`<div class="timeline-dot-wrapper \${active}" onclick="goTo(\${i})"><div class="timeline-dot"></div><div class="timeline-label-fixed">\${formatDate(p.Data)}<br>\${p.Orario}</div></div>\`;
+            });
+
+            // Auto-scroll dots
+            setTimeout(() => {
+                const activeDot = dotsContainer.querySelector('.active');
+                if(activeDot) {
+                    const offset = (document.getElementById('showcase-timeline').offsetWidth / 2) - (activeDot.offsetWidth / 2);
+                    document.getElementById('showcase-timeline').scrollTo({ left: activeDot.offsetLeft - offset, behavior: 'smooth' });
+                }
+            }, 10);
+
+            // Render Card
+            let media = post.ImmagineB64 ? \`<img src="\${post.ImmagineB64}" class="w-full h-auto max-h-[500px] object-contain rounded shadow-sm">\` : 
+                \`<div class="asset-placeholder"><p>\${post.Asset || 'Nessun asset'}</p></div>\`;
+            
+            const chans = ['Facebook','Linkedin','X','Instagram'].map(c => post[c] ? \`<span class="text-blue-700 bg-blue-50 p-2 rounded-full">\${icons[c === 'Facebook' ? 'fb' : c === 'Linkedin' ? 'li' : c === 'X' ? 'x' : 'ig']}</span>\` : '').join('');
+
+            container.innerHTML = \`
+                <div class="showcase-card bg-white rounded-xl shadow-lg border border-slate-100 p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex gap-2">\${chans}</div>
+                        <div class="text-right font-bold text-slate-800">\${formatDate(post.Data)} - <span class="text-slate-500 font-normal">\${post.Orario}</span></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>\${media}</div>
+                        <div>
+                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Copy</h3>
+                             <div class="prose text-slate-700 whitespace-pre-wrap">\${post.Testo || ''}</div>
+                             \${post.Ricondivisione ? '<div class="mt-4 bg-slate-100 inline-block px-3 py-1 rounded text-xs font-bold text-slate-500">Ricondivisione</div>' : ''}
+                        </div>
+                    </div>
+                </div>
+            \`;
+            
+            document.getElementById('counter').innerText = \`\${idx + 1} / \${plan.length}\`;
+            document.getElementById('prev').disabled = idx === 0;
+            document.getElementById('next').disabled = idx === plan.length - 1;
+        }
+
+        window.goTo = (i) => { idx = i; render(); };
+        document.getElementById('prev').onclick = () => { if(idx > 0) goTo(idx-1); };
+        document.getElementById('next').onclick = () => { if(idx < plan.length-1) goTo(idx+1); };
+        
+        if(plan.length > 0) render();
+        else document.body.innerHTML = '<h1 class="text-center mt-10">Nessun post nel piano.</h1>';
+    <\/script>
+</body>
+</html>
+        `;
+
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
+        a.click();
+        showToast('HTML Vetrina esportato!');
     };
-
-    // --- Sliders & Navigation ---
-    els.controls.sliders.forEach(s => s.addEventListener('input', (e) => {
-        els.controls.sliders.forEach(sl => sl.value = e.target.value); // sync
-        els.grids.view.style.setProperty('--font-scale', e.target.value);
-        els.grids.showcase.style.setProperty('--font-scale', e.target.value);
-    }));
-
-    els.timeline.prev.onclick = () => { currentShowcaseIndex--; renderShowcase(); };
-    els.timeline.next.onclick = () => { currentShowcaseIndex++; renderShowcase(); };
-
-    els.controls.filters.addEventListener('change', (e) => {
-        const checkboxes = els.controls.filters.querySelectorAll('input[type="checkbox"]');
-        viewFilters.channels = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
-        if(currentView === 'cards') renderCards();
-    });
 
     // --- Init ---
     function showToast(msg, type='info') {
         const t = $('toast-notification');
         $('toast-message').innerText = msg;
-        $('toast-icon').innerHTML = type === 'success' ? icons.share : icons.share; // simplify icons
+        $('toast-icon').innerHTML = type === 'success' ? icons.share : icons.share;
         t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    // Load Data
     const saved = localStorage.getItem('socialPlan2');
-    if(saved) {
-        try { editorialPlan = JSON.parse(saved); } catch { editorialPlan = []; }
-    } else {
-        // Dummy data for first time
-        editorialPlan = [{Data: new Date().toISOString().split('T')[0], Orario:'10:00', Testo:'Benvenuto nel nuovo Gestore Piano Editoriale! 🚀', Asset:'Immagine team', Facebook:true, Linkedin:true, X:false, Instagram:true}];
-    }
+    if(saved) try { editorialPlan = JSON.parse(saved); } catch { editorialPlan = []; }
+    if(localStorage.getItem('socialPlanTitle')) els.controls.titleInput.value = localStorage.getItem('socialPlanTitle');
 
-    // Bind Views
+    if(editorialPlan.length === 0) editorialPlan = [{Data: new Date().toISOString().split('T')[0], Orario:'10:00', Testo:'Benvenuto!', Asset:'', Facebook:true, Linkedin:true, X:false, Instagram:true}];
+
     els.btns.edit.onclick = () => setView('edit');
     els.btns.cards.onclick = () => setView('cards');
     els.btns.showcase.onclick = () => setView('showcase');
+    
+    // Sliders
+    els.controls.sliders.forEach(s => s.addEventListener('input', (e) => {
+        els.controls.sliders.forEach(sl => sl.value = e.target.value);
+        els.grids.view.style.setProperty('--font-scale', e.target.value);
+        els.grids.showcase.style.setProperty('--font-scale', e.target.value);
+    }));
 
-    // Start
+    // Filter
+    els.controls.filters.addEventListener('change', () => {
+        viewFilters.channels = Array.from(els.controls.filters.querySelectorAll('input:checked')).map(c => c.value);
+        if(currentView === 'cards') renderCards();
+    });
+
     setView('edit');
-
     </script>
 </body>
 </html>
