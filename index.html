@@ -5,7 +5,7 @@
     
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Gestore Piano Editoriale 3.0</title>
+    <title>Gestore Piano Editoriale 4.0</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -48,7 +48,7 @@
         .btn-neutral { background: white; color: #0f172a; border: 1px solid #e6e9ee; }
         .btn-neutral:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-color: #cbd5e1; }
 
-        /* Icon Button Toggles (New for Editor) */
+        /* Icon Button Toggles */
         .btn-icon-toggle {
             padding: 6px;
             border-radius: 8px;
@@ -385,8 +385,8 @@
             reset: $('reset-app-btn'),
             importJson: $('import-json-btn'), exportJson: $('export-json-btn'),
             importExcel: $('import-excel-btn'), exportExcel: $('export-excel-btn'),
-            exportHtml: $('export-html-btn'), // NEW
-            titleInput: $('plan-title-input'), // NEW
+            exportHtml: $('export-html-btn'),
+            titleInput: $('plan-title-input'),
             helperImg: $('helper-img-upload'),
             sliders: [$('text-size-slider'), $('text-size-slider-showcase')],
             filters: $('channel-filters')
@@ -681,11 +681,10 @@
     els.controls.importExcel.onclick = () => els.inputs.excel.click();
     els.inputs.excel.onchange = (e) => { const reader = new FileReader(); reader.onload = (evt) => { const wb = XLSX.read(evt.target.result, {type:'binary'}); const ws = wb.Sheets[wb.SheetNames[0]]; editorialPlan = XLSX.utils.sheet_to_json(ws).map(r => ({...r, Facebook: !!r.Facebook, Linkedin: !!r.Linkedin, X: !!r.X, Instagram: !!r.Instagram})); renderEdit(); showToast('Excel Importato'); }; reader.readAsBinaryString(e.target.files[0]); };
 
-    // --- NUOVO: EXPORT HTML (Vetrina Standalone) ---
+    // --- EXPORT HTML (Nuova Logica Sequenziale) ---
     els.controls.exportHtml.onclick = () => {
         const title = els.controls.titleInput.value || "Piano Editoriale";
         
-        // Costruzione del file HTML Pulito
         const htmlContent = `
 <!DOCTYPE html>
 <html lang="it">
@@ -697,45 +696,23 @@
     <style>
         :root{ --poste-yellow: #eddc01; --poste-blue: #0146bc; }
         body { font-family: system-ui, sans-serif; background: #fbfbfb; color: #0f172a; }
-        /* Copia stili essenziali timeline */
-        #showcase-timeline-container { position: relative; padding: 2rem 3.5rem; background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 2rem; }
-        #showcase-timeline { overflow-x: auto; scrollbar-width: thin; height: 120px; width: 100%; padding: 1rem 0; position: relative; }
-        #showcase-timeline-line { position: absolute; top: 50%; left: 1rem; right: 1rem; height: 3px; background: linear-gradient(90deg, var(--poste-yellow), var(--poste-blue)); transform: translateY(-50%); z-index: 1; }
-        #showcase-timeline-dots-container { position: absolute; top: 50%; transform: translateY(-50%); display: flex; gap: 3rem; padding: 0 1.5rem; }
-        .timeline-dot-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform .2s; }
-        .timeline-dot-wrapper:hover { transform: translateY(-2px); }
-        .timeline-dot { width: 16px; height: 16px; border-radius: 50%; background: white; border: 3px solid var(--poste-blue); z-index: 5; }
-        .timeline-dot-wrapper.active .timeline-dot { width: 20px; height: 20px; background: var(--poste-blue); border-width: 4px; box-shadow: 0 0 0 4px rgba(1,70,188,0.1); }
-        .timeline-label-fixed { position: absolute; top: 100%; margin-top: 10px; font-size: 0.7rem; font-weight: 600; background: white; padding: 2px 6px; border: 1px solid #e2e8f0; border-radius: 4px; white-space: nowrap; color: #64748b; }
-        .timeline-dot-wrapper.active .timeline-label-fixed { color: var(--poste-blue); border-color: var(--poste-blue); }
         .showcase-card { animation: fadeIn .3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .asset-placeholder { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; height: 250px; display: flex; align-items: center; justify-content: center; color: #64748b; text-align: center; }
     </style>
 </head>
-<body class="py-10 px-4">
+<body class="py-12 px-4">
     <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-10">
-             <h1 class="text-3xl font-bold text-slate-900">${title}</h1>
-             <p class="text-slate-500 mt-2">Vetrina interattiva del piano editoriale</p>
+        <header class="text-center mb-16">
+             <h1 class="text-4xl font-bold text-slate-900">${title}</h1>
+             <p class="text-slate-500 mt-2">Vetrina Social Media Plan</p>
         </header>
 
-        <div id="showcase-timeline-container">
-            <div id="showcase-timeline">
-                <div id="showcase-timeline-line"></div>
-                <div id="showcase-timeline-dots-container"></div>
-            </div>
-            <button id="prev" class="absolute top-1/2 left-2 -translate-y-1/2 bg-white shadow border rounded-full p-2">←</button>
-            <button id="next" class="absolute top-1/2 right-2 -translate-y-1/2 bg-white shadow border rounded-full p-2">→</button>
-        </div>
-
-        <div id="showcase-carousel" class="relative min-h-[400px]"></div>
-        <p id="counter" class="text-center text-sm text-slate-400 mt-4 font-mono"></p>
+        <div id="posts-container" class="space-y-16 pb-20"></div>
     </div>
 
     <script>
         const plan = ${JSON.stringify(editorialPlan)};
-        let idx = 0;
         const icons = {
             fb: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.142v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>',
             li: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>',
@@ -745,61 +722,42 @@
 
         function formatDate(iso) { try { const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y.slice(2); } catch { return iso; } }
 
-        function render() {
-            const container = document.getElementById('showcase-carousel');
-            const dotsContainer = document.getElementById('showcase-timeline-dots-container');
-            const post = plan[idx];
-            
-            // Render Dots
-            dotsContainer.innerHTML = '';
-            plan.forEach((p, i) => {
-                const active = i === idx ? 'active' : '';
-                dotsContainer.innerHTML += \`<div class="timeline-dot-wrapper \${active}" onclick="goTo(\${i})"><div class="timeline-dot"></div><div class="timeline-label-fixed">\${formatDate(p.Data)}<br>\${p.Orario}</div></div>\`;
-            });
+        const container = document.getElementById('posts-container');
 
-            // Auto-scroll dots
-            setTimeout(() => {
-                const activeDot = dotsContainer.querySelector('.active');
-                if(activeDot) {
-                    const offset = (document.getElementById('showcase-timeline').offsetWidth / 2) - (activeDot.offsetWidth / 2);
-                    document.getElementById('showcase-timeline').scrollTo({ left: activeDot.offsetLeft - offset, behavior: 'smooth' });
-                }
-            }, 10);
+        if(plan.length === 0) {
+            container.innerHTML = '<p class="text-center text-slate-400">Nessun contenuto disponibile.</p>';
+        } else {
+            plan.forEach(post => {
+                let media = post.ImmagineB64 ? \`<img src="\${post.ImmagineB64}" class="w-full h-auto max-h-[500px] object-contain rounded shadow-sm">\` : 
+                    \`<div class="asset-placeholder"><p>\${post.Asset || 'Nessun asset'}</p></div>\`;
+                
+                const chans = ['Facebook','Linkedin','X','Instagram'].map(c => post[c] ? \`<span class="text-blue-700 bg-blue-50 p-2 rounded-full">\${icons[c === 'Facebook' ? 'fb' : c === 'Linkedin' ? 'li' : c === 'X' ? 'x' : 'ig']}</span>\` : '').join('');
 
-            // Render Card
-            let media = post.ImmagineB64 ? \`<img src="\${post.ImmagineB64}" class="w-full h-auto max-h-[500px] object-contain rounded shadow-sm">\` : 
-                \`<div class="asset-placeholder"><p>\${post.Asset || 'Nessun asset'}</p></div>\`;
-            
-            const chans = ['Facebook','Linkedin','X','Instagram'].map(c => post[c] ? \`<span class="text-blue-700 bg-blue-50 p-2 rounded-full">\${icons[c === 'Facebook' ? 'fb' : c === 'Linkedin' ? 'li' : c === 'X' ? 'x' : 'ig']}</span>\` : '').join('');
+                const html = \`
+                    <div class="showcase-card">
+                        <div class="text-center mb-4">
+                            <h2 class="text-2xl font-bold text-slate-800">\${formatDate(post.Data)}</h2>
+                            <p class="text-blue-700 font-semibold">\${post.Orario}</p>
+                        </div>
 
-            container.innerHTML = \`
-                <div class="showcase-card bg-white rounded-xl shadow-lg border border-slate-100 p-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="flex gap-2">\${chans}</div>
-                        <div class="text-right font-bold text-slate-800">\${formatDate(post.Data)} - <span class="text-slate-500 font-normal">\${post.Orario}</span></div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>\${media}</div>
-                        <div>
-                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Copy</h3>
-                             <div class="prose text-slate-700 whitespace-pre-wrap">\${post.Testo || ''}</div>
-                             \${post.Ricondivisione ? '<div class="mt-4 bg-slate-100 inline-block px-3 py-1 rounded text-xs font-bold text-slate-500">Ricondivisione</div>' : ''}
+                        <div class="bg-white rounded-xl shadow-lg border border-slate-100 p-8">
+                            <div class="flex justify-between items-center mb-6 border-b border-slate-50 pb-4">
+                                <div class="flex gap-2">\${chans}</div>
+                                \${post.Ricondivisione ? '<span class="bg-slate-100 px-3 py-1 rounded text-xs font-bold text-slate-500">Ricondivisione</span>' : ''}
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>\${media}</div>
+                                <div>
+                                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Copy</h3>
+                                     <div class="prose text-slate-700 whitespace-pre-wrap">\${post.Testo || ''}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            \`;
-            
-            document.getElementById('counter').innerText = \`\${idx + 1} / \${plan.length}\`;
-            document.getElementById('prev').disabled = idx === 0;
-            document.getElementById('next').disabled = idx === plan.length - 1;
+                \`;
+                container.innerHTML += html;
+            });
         }
-
-        window.goTo = (i) => { idx = i; render(); };
-        document.getElementById('prev').onclick = () => { if(idx > 0) goTo(idx-1); };
-        document.getElementById('next').onclick = () => { if(idx < plan.length-1) goTo(idx+1); };
-        
-        if(plan.length > 0) render();
-        else document.body.innerHTML = '<h1 class="text-center mt-10">Nessun post nel piano.</h1>';
     <\/script>
 </body>
 </html>
